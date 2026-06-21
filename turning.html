@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>切削（丸物）TUP｜meviy 仕様ガイド</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav"><div class="inner">
+  <span class="brand"><b>meviy</b> 仕様ガイド</span>
+  <a class="link" href="index.html">ホーム</a>
+  <a class="link" href="basics.html">基本情報（横断）</a>
+  <a class="link" href="sheet-metal.html">板金</a>
+  <a class="link" href="sheet-metal-welding.html">板金溶接</a>
+  <a class="link" href="milling.html">切削（角物）</a>
+  <a class="link active" href="turning.html">切削（丸物）</a>
+</div></nav>
+
+<div class="wrap"><div class="docpage">
+<aside class="sidebar"><div class="side-inner">
+  <div class="side-title">切削（丸物）</div>
+  <nav class="side-nav">
+    <a href="#overview">対応形状・認識条件</a>
+    <a href="#material">対応材質・サイズ</a>
+    <a href="#property">材料の特性</a>
+    <a href="#surface">表面処理</a>
+    <a href="#heat">熱処理（焼入れ）</a>
+    <a href="#design">設計ガイドライン（形状・モデリング）</a>
+    <a href="#thread">ねじ・キー溝・穴・ポケット規格</a>
+    <a href="#tolerance">公差・精度</a>
+    <a href="#finish">外観品質・研削研磨・付帯サービス</a>
+    <a href="#ship">出荷日・納期・割引</a>
+    <a href="#error">よくある見積もりエラー</a>
+  </nav>
+</div></aside>
+<main class="doc-main">
+  <div class="eyebrow">TUP ／ Turning Part</div>
+  <h1>切削（丸物）</h1>
+  <p class="lead">丸棒素材を旋盤（旋削）中心に加工する回転対称部品サービス。シャフト・ピン・スリーブ・カラー・ブッシュなどが対象。
+     <b>材質31・表面処理12・熱処理（焼入れ）対応</b>。最短<b>1日目出荷</b>の超短納期、研削・研磨やクリーン洗浄・レーザ刻印にも対応します。</p>
+
+  <!-- ============ 概要・認識条件 ============ -->
+  <section id="overview">
+    <h2>対応形状・認識条件</h2>
+    <p>切削サービスでは丸物・角物を<b>自動判定</b>します。最外径に円筒部があれば「切削丸物」として認識されます。</p>
+    <div class="info">
+      <b>丸物の判定条件</b>：最外径が円筒部であること。具体的には<b>最外径の円筒面が合計140°超</b>なら丸物、<b>140°以下</b>なら角物として認識されます（角部R面取り・最外形が四角の場合は角物）。
+    </div>
+    <figure class="fig"><img src="img/tup/12594_01.png" alt="最外径の円筒面で丸物と判定されるモデル例" loading="lazy"><figcaption>最外径の円筒面（赤枠）が合計140°超なら「切削丸物」として自動認識される。<span class="src">出典：meviy使い方マニュアル「切削丸物の認識条件」</span></figcaption></figure>
+
+    <h3>自動見積もり可能な形状</h3>
+    <div class="pills">
+      <span class="pill cat">外径</span><span class="pill">外径旋削</span><span class="pill">溝外径</span><span class="pill">V溝</span><span class="pill">テーパ溝</span><span class="pill">R溝</span><span class="pill">マイナス溝</span><span class="pill">最外径クラウン</span><span class="pill">最外径テーパ</span><span class="pill">六角</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">内径</span><span class="pill">内径旋削</span><span class="pill">溝内径</span><span class="pill">穴</span><span class="pill">六角穴</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">ねじ※</span><span class="pill">おねじ</span><span class="pill">めねじ</span><span class="pill">管用テーパおねじ</span><span class="pill">管用テーパめねじ</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">その他</span><span class="pill">外径キー溝</span><span class="pill">内径キー溝</span><span class="pill">切り欠き（ポケット）</span><span class="pill">端面溝※</span><span class="pill">刻印</span>
+    </div>
+    <div class="note">
+      <b>ねじ形状は3Dモデルでは認識されません。</b> meviy画面上で「おねじ／めねじ」を設定してください。テーパ形状の認識角度は<b>0°超2.5°未満</b>。端面溝・管用テーパねじの<b>底面R</b>は担当者見積もりとなります。
+    </div>
+
+    <h3>認識上の注意（外径・内径・穴）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>要素</th><th>認識される条件</th><th>外れた場合</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">外径・内径</td><td>中心軸上にある</td><td>中心軸上にない外径＝<b>対象外形状</b>／内径＝<b>穴</b>として認識</td></tr>
+        <tr><td class="rowhdr">円筒側面穴</td><td>中心軸に向いている</td><td>向いていない穴は<b>「その他穴」</b>＝自動見積もり対象外（コメント欄に穴情報を記入）</td></tr>
+        <tr><td class="rowhdr">おねじ（外径）</td><td colspan="2">外径の<b>自動認識は非対応</b>。画面上で指定</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>対象外形状（発注後に形状変更相談の可能性あり）</h3>
+    <p>下記は自動見積もりが成功するケースがあっても、発注後に形状変更をご相談する場合があります。</p>
+    <div class="pills">
+      <span class="pill">ギア</span><span class="pill">偏芯</span><span class="pill">セットカラー</span><span class="pill">斜め穴</span><span class="pill">ローレット</span><span class="pill">止まりの内径キー溝</span><span class="pill">V溝（端面）</span><span class="pill">側面ポケット入口R</span><span class="pill">端面溝の底部R</span><span class="pill">先端円錐</span><span class="pill">パイプ溶接・溶接</span><span class="pill">T溝</span><span class="pill">アンダーカット</span><span class="pill">自由曲面</span><span class="pill">凸R連続</span><span class="pill">球</span>
+    </div>
+  </section>
+
+  <!-- ============ 材質・サイズ ============ -->
+  <section id="material">
+    <h2>対応材質・サイズ（31材質）</h2>
+    <div class="pills">
+      <span class="pill cat">鉄・鋼</span><span class="pill">S45C</span><span class="pill">SS400</span><span class="pill">SCM435</span><span class="pill">SCM440</span><span class="pill">SKS3</span><span class="pill">SKD11</span><span class="pill">SKD61</span><span class="pill">SUJ2</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">ステンレス</span><span class="pill">SUS303</span><span class="pill">SUS304</span><span class="pill">SUS316</span><span class="pill">SUS316L</span><span class="pill">SUS440C</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">アルミ</span><span class="pill">A2017</span><span class="pill">A5052</span><span class="pill">A5056</span><span class="pill">A6061</span><span class="pill">A7075</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">銅・真鍮</span><span class="pill">C3604-LCd</span>
+    </div>
+    <div class="pills">
+      <span class="pill cat">樹脂</span><span class="pill">POM（ポリアセタール）</span><span class="pill">MCナイロン</span><span class="pill">ABS</span><span class="pill">PEEK</span><span class="pill">PPS</span><span class="pill">アクリル</span><span class="pill">PC</span><span class="pill">PP</span><span class="pill">PVC</span><span class="pill">超高分子量PE</span><span class="pill">ふっ素(PTFE)</span><span class="pill">ユニレート</span>
+    </div>
+
+    <h3>材質別の対応サイズ（外径D・全長L）</h3>
+    <p>自動見積もり領域のサイズです。外径Dと全長Lの<b>組合せ</b>で可否が変わります（次表の包絡を参照）。
+       金属は基本 ø3〜ø500・L2〜5000mm の範囲内、樹脂は材質ごとに外径上限が異なります。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>区分</th><th>材質（質別）</th><th>外径D</th><th>全長L</th><th>短納期/超短納期の条件・備考</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr" rowspan="2">鉄・鋼</td>
+          <td>S45C／SS400／SCM435／SKS3／SKD11／SUJ2</td><td>ø3〜500</td><td>2〜5000mm</td>
+          <td>超短納期は1日目〜（標準6日目〜）</td></tr>
+        <tr><td>SCM440／SKD61</td><td><b>ø10〜</b>500</td><td>2〜5000mm</td>
+          <td>SKD61は標準9日目〜・超短納期対象外</td></tr>
+        <tr><td class="rowhdr" rowspan="2">ステンレス</td>
+          <td>SUS303／SUS304／SUS316</td><td>ø3〜500</td><td>2〜5000mm</td>
+          <td>超短納期1日目〜</td></tr>
+        <tr><td>SUS316L／SUS440C</td><td>ø3〜500</td><td>2〜5000mm</td>
+          <td>SUS316Lはø20以下で短・超短納期可／SUS440Cは超短納期対象外</td></tr>
+        <tr><td class="rowhdr">アルミ</td>
+          <td>A2017[T4]／A5052[H32･H34･H112]／A5056[H34･H112]／A6061[T6]／A7075[T6511]</td>
+          <td>ø3〜500</td><td>2〜5000mm</td><td>質別の指定不可。A7075は超短納期対象外</td></tr>
+        <tr><td class="rowhdr">銅・真鍮</td>
+          <td>C3604-LCd（快削真鍮）</td><td>ø3〜500</td><td>2〜5000mm</td>
+          <td>標準9日目〜。ø100以下で短納期可・超短納期は今後対応</td></tr>
+        <tr><td class="rowhdr" rowspan="3">樹脂</td>
+          <td>POM／MCナイロン（青・黒灰）／ABS／PPS／PVC</td><td>ø3〜（材質規定）</td><td>2〜5000mm</td>
+          <td>超短納期1日目〜（一部材質は今後対応）</td></tr>
+        <tr><td>MCナイロン（アイボリー）</td><td><b>〜ø200</b></td><td>2〜5000mm</td><td>標準8日目〜・短納期4日目〜</td></tr>
+        <tr><td>アクリル／PC／PP／PEEK／超高分子量PE／PTFE／ユニレート</td>
+          <td>アクリル〜ø80／PC・PP〜ø150／PEEK・超高分子量PE〜ø100</td><td>2〜5000mm</td>
+          <td>PC・PPはø150以下、PEEK・超高分子量PEはø100以下で短納期可</td></tr>
+      </tbody>
+    </table></div>
+
+    <h4 style="margin:18px 0 6px;font-size:.98rem;">外径D × 全長L の自動見積もり包絡（金属の目安）</h4>
+    <p class="dim">同じ材質でも、径と長さの組合せで対応可否が変わります。大径は長尺になるほど、また細径(ø10以下)も長尺は対象外です。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>外径D</th><th>自動見積もりの全長L上限（目安）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">3 ≦ D ≦ 10</td><td>〜200mm</td></tr>
+        <tr><td class="rowhdr">10 &lt; D ≦ 140</td><td>〜5000mm</td></tr>
+        <tr><td class="rowhdr">140 &lt; D ≦ 200</td><td>〜1000mm</td></tr>
+        <tr><td class="rowhdr">200 &lt; D ≦ 250</td><td>〜200mm</td></tr>
+        <tr><td class="rowhdr">250 &lt; D ≦ 300</td><td>〜100mm</td></tr>
+        <tr><td class="rowhdr">300 &lt; D ≦ 500</td><td>自動見積もり対象外（担当者見積）</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <b>真鍮 C3604 の取り扱い注意</b>：傷つきやすく、湿気で変色・錆びが発生しやすい。手で直接触れると皮脂で変色します。納入後の取り扱いにご注意ください。
+    </div>
+  </section>
+
+  <!-- ============ 材料の特性 ============ -->
+  <section id="property">
+    <h2>材料の特性</h2>
+    <p class="dim">下記特性値は参考値であり保証値ではありません。</p>
+
+    <h3>鉄・鋼の特徴と代表値</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>引張強さ(N/mm²)</th><th>比重</th><th>特徴</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SS400</td><td>400〜510</td><td>7.87</td><td>一般構造用圧延鋼材。低コスト・加工良好。引張400N/mm²以上が名称由来</td></tr>
+        <tr><td class="rowhdr">S45C</td><td>570〜750</td><td>7.87</td><td>炭素約0.45%の構造用炭素鋼。焼入れで強度・耐摩耗性向上。シャフト・ギア・ピン</td></tr>
+        <tr><td class="rowhdr">SCM435</td><td>900〜1050</td><td>7.85</td><td>Cr-Mo合金鋼。高強度・高靭性。高強度ボルト・シャフト</td></tr>
+        <tr><td class="rowhdr">SCM440</td><td>950〜1100</td><td>7.85</td><td>高強度・高靭性。焼入れで強化。自動車・機械部品</td></tr>
+        <tr><td class="rowhdr">SKS3</td><td>1000〜1300</td><td>7.85</td><td>冷間加工用合金工具鋼。高硬度・高耐摩耗。せん断刃・ダイス・ゲージ</td></tr>
+        <tr><td class="rowhdr">SKD11</td><td>1800〜2000</td><td>7.8</td><td>合金工具鋼。高硬度・高耐摩耗、比較的高耐食。金型・治具・ゲージ</td></tr>
+        <tr><td class="rowhdr">SKD61</td><td>1200〜1400</td><td>7.73</td><td>熱間ダイス鋼（Cr-Mo-V）。高温強度・耐熱疲労・寸法安定性</td></tr>
+        <tr><td class="rowhdr">SUJ2</td><td>1570〜1960</td><td>7.8</td><td>高炭素クロム軸受鋼。非常に高硬度・高耐摩耗。ベアリング・精密部品</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>アルミの特徴と代表値</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>引張強さ(N/mm²)</th><th>比重</th><th>特徴</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">A2017</td><td>390〜500</td><td>2.79</td><td>ジュラルミン。切削性と強度。銅含有で耐食性はやや劣る。航空機・車両</td></tr>
+        <tr><td class="rowhdr">A5052</td><td>210〜265</td><td>2.68</td><td>成形性・溶接性・耐食性に優れる。中程度強度で流通量が多い一般材</td></tr>
+        <tr><td class="rowhdr">A5056</td><td>290〜350</td><td>2.66</td><td>Mg多含有。耐食性・強度・溶接性。丸棒材として広く流通</td></tr>
+        <tr><td class="rowhdr">A6061</td><td>260〜310</td><td>2.7</td><td>耐食性トップクラス。T6処理で高強度。海水・屋外環境に最適</td></tr>
+        <tr><td class="rowhdr">A7075</td><td>510〜580</td><td>2.8</td><td>超々ジュラルミン。アルミ最高クラスの強度。軽量化＋高強度用途</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>ステンレスの特徴と代表値</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>引張強さ(N/mm²)</th><th>比重</th><th>特徴</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SUS303</td><td>520〜750</td><td>7.93</td><td>切削性向上のオーステナイト系。複雑形状向き。耐食・溶接性はSUS304に劣る</td></tr>
+        <tr><td class="rowhdr">SUS304</td><td>520〜750</td><td>7.93</td><td>汎用性が高い。高耐食・高強度・優れた溶接性</td></tr>
+        <tr><td class="rowhdr">SUS316</td><td>520〜700</td><td>7.98</td><td>SUS304より耐食・耐孔食性向上。沿岸部・潮風環境</td></tr>
+        <tr><td class="rowhdr">SUS316L</td><td>480〜680</td><td>7.98</td><td>低炭素で耐粒界腐食性が高い。海水など高耐食用途</td></tr>
+        <tr><td class="rowhdr">SUS440C</td><td>1900〜2100</td><td>7.7</td><td>ステンレス中で最高硬度。焼入れで高硬度・耐摩耗。ベアリング・金型部品</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>銅・真鍮／樹脂の特徴</h3>
+    <dl class="spec">
+      <dt>C3604-LCd（真鍮・黄銅）</dt><dd>引張335〜540N/mm²、比重8.43。切削抵抗が少なく切粉が分断される。精密部品向き。<b>変色・錆び・傷に注意</b></dd>
+      <dt>POM（ポリアセタール）</dt><dd>機械強度・耐摩耗・耐薬品性が高い。吸水性が低く長期の寸法安定性に優れる。連続使用95〜100℃</dd>
+      <dt>MCナイロン</dt><dd>機械強度・耐摩耗性に優れる。<b>吸水性が高く寸法安定性に劣る</b>。耐候・帯電防止・導電グレードあり。連続使用120℃</dd>
+      <dt>PEEK</dt><dd>熱可塑性樹脂で最高レベルの耐熱・機械強度。連続使用250〜260℃。非常に高価</dd>
+      <dt>PPS</dt><dd>耐熱・寸法安定・耐薬品。PEEKに近い耐熱で低価格。連続使用220℃</dd>
+      <dt>超高分子量PE</dt><dd>低比重・高耐摩耗・滑り特性。線膨張係数が大きく寸法安定性が悪い。バリ除去しにくい</dd>
+      <dt>ふっ素（PTFE）</dt><dd>耐熱・耐薬品・摺動性が非常に高い。硬度が低くバリが出やすい。連続使用260℃</dd>
+    </dl>
+  </section>
+
+  <!-- ============ 表面処理 ============ -->
+  <section id="surface">
+    <h2>表面処理（12種）</h2>
+    <p>○＝優、△＝中、×＝なし／劣。鉄鋼系・アルミ系・SUS系で対応処理が分かれます。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>表面処理</th><th>耐食性</th><th>耐摩耗性</th><th>硬度</th><th>装飾性</th><th>導電性</th><th>主な対象</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">無電解ニッケルメッキ</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>△</td><td><span class="yes">○</span></td><td>鉄鋼・複雑形状に均一被膜</td></tr>
+        <tr><td class="rowhdr">四三酸化鉄皮膜（黒染め）</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>△</td><td><span class="yes">○</span></td><td>鉄鋼・低コスト防錆</td></tr>
+        <tr><td class="rowhdr">三価クロメート（白）</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>△</td><td><span class="yes">○</span></td><td>鉄鋼</td></tr>
+        <tr><td class="rowhdr">三価クロメート（黒）</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>△</td><td><span class="yes">○</span></td><td>鉄鋼</td></tr>
+        <tr><td class="rowhdr">硬質クロム（フラッシュ）</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>△</td><td>鉄鋼・摺動部（HV700〜1000）</td></tr>
+        <tr><td class="rowhdr">低温黒色クロム</td><td><span class="yes">○</span></td><td>△</td><td>△</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>鉄鋼・被膜割れ少</td></tr>
+        <tr><td class="rowhdr">パーカー処理</td><td>△</td><td>△</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>鉄鋼・塗装下地（SKD11/61は対象外）</td></tr>
+        <tr><td class="rowhdr">イソナイト（塩浴軟窒化）</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>鉄鋼・低変形（570〜590℃）</td></tr>
+        <tr><td class="rowhdr">白アルマイト</td><td><span class="yes">○</span></td><td>△</td><td>△</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>アルミ・銀白色</td></tr>
+        <tr><td class="rowhdr">黒アルマイト（つや消し含む）</td><td><span class="yes">○</span></td><td>△</td><td>△</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>アルミ・装飾／光学</td></tr>
+        <tr><td class="rowhdr">硬質アルマイト（白）</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>△</td><td><span class="no">×</span></td><td>アルミ・高硬度／潤滑</td></tr>
+        <tr><td class="rowhdr">不動態化処理</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>△</td><td><span class="yes">○</span></td><td>SUS・耐食向上</td></tr>
+        <tr><td class="rowhdr">アロジン処理相当（三価クロム化成）</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>△</td><td><span class="yes">○</span></td><td>アルミ・導電性あり（RoHS適合）</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <b>公差レンジ0.1未満を指定できない表面処理</b>：三価クロメート（白）・三価クロメート（黒）・イソナイト（塩浴軟窒化）・硬質アルマイト（白）。<br>
+      ※熱処理／バフ研磨を指定した場合、電解研磨は対応不可。
+    </div>
+  </section>
+
+  <!-- ============ 熱処理 ============ -->
+  <section id="heat">
+    <h2>熱処理（焼入れ）</h2>
+    <p>ズブ焼入れ・真空焼入れ・高周波焼入れに対応します（全体焼入れ＝ズブ／真空、部分焼入れ＝高周波）。<b>指示がない場合は生材</b>で提供します。</p>
+
+    <h3>材質別の対応可否と標準硬度</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>ズブ／真空（全体）標準硬度</th><th>高周波（部分）標準硬度</th><th>自動見積可能範囲(HRC)</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">S45C</td><td>HRC40〜45</td><td>HRC52〜58</td><td>30〜45（高周波は52〜58）</td></tr>
+        <tr><td class="rowhdr">SCM435</td><td>HRC35〜40</td><td>HRC52〜58</td><td>30〜45</td></tr>
+        <tr><td class="rowhdr">SCM440</td><td>HRC50〜55</td><td>HRC52〜58</td><td>30〜55</td></tr>
+        <tr><td class="rowhdr">SKS3</td><td>HRC58〜63</td><td>HRC58〜63</td><td>40〜63</td></tr>
+        <tr><td class="rowhdr">SKD11</td><td>HRC58〜63</td><td><span class="dim">高周波対応不可</span></td><td>50〜63</td></tr>
+        <tr><td class="rowhdr">SKD61</td><td>HRC50〜55</td><td>—</td><td>40〜55</td></tr>
+        <tr><td class="rowhdr">SUJ2</td><td>HRC58〜63</td><td>HRC57〜63</td><td>35〜63</td></tr>
+        <tr><td class="rowhdr">SUS440C</td><td>HRC58〜63</td><td><span class="dim">高周波対応不可</span></td><td>45〜63</td></tr>
+        <tr><td class="rowhdr">SS400／アルミ全般／SUS303・304・316・316L／C3604</td><td colspan="3"><span class="no">×</span> 焼入れ対応不可</td></tr>
+      </tbody>
+    </table></div>
+    <div class="info">
+      <b>SUJ2 は焼入れ後 HRC58〜63</b>（軸受鋼として高硬度）。最低硬度指定値以上での硬度（HRC）を保証します。
+    </div>
+
+    <h3>焼入れ対応サイズ（標準納期）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>種別</th><th>外径D</th><th>全長L</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">全体焼入れ（ズブ／真空）</td><td>3≦D≦300</td><td>2≦L≦300</td></tr>
+        <tr><td class="rowhdr">部分焼入れ（高周波）</td><td>6≦D≦300</td><td>5≦L≦300</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <b>高周波焼入れの特性</b>：指定範囲の<b>周囲5mm程度も焼入れが入ります</b>。硬化層は1mm以上形成されます。<br>
+      イソナイト処理と焼入れを併用すると、標準硬度とは異なる仕上がりになります（参考：イソナイト処理後の表面硬度はS45CでHRC45.3〜57.8、SKD11でHRC67.0〜72.7）。
+    </div>
+  </section>
+
+  <!-- ============ 設計ガイドライン ============ -->
+  <section id="design">
+    <h2>設計ガイドライン（形状・モデリングルール）</h2>
+    <p>製造は3D CADデータが正ですが、加工上、以下の場合は3Dモデルと仕上がりに差異が生じます。</p>
+
+    <h3>角部・円筒隅部・面取り（C/R0.5ルール）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>モデル形状</th><th>仕上がり</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">角部 C/R0.5未満</td><td>C/R0.1〜0.4mm または糸面取り</td></tr>
+        <tr><td class="rowhdr">角部 C0.5／R0.5以上</td><td>3Dデータ通りに加工</td></tr>
+        <tr><td class="rowhdr">円筒隅部 0.5未満（逃げ溝なし）</td><td>R0〜R0.4mm（工具刃先R0.4の仕上がり）</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note"><b>「面取り不可」指定は対応していません。</b>「隅R0(逃げ溝)指示」を選ぶと工具R0.1〜R0.4で加工（工具は選択不可、深さは0.5mm未満になる場合あり）。止め輪規格に当てはまる溝入れ工具を使う場合、円筒隅部は工具R0.2となります。</div>
+
+    <h3>3Dモデル径とねじ呼び径の差異</h3>
+    <p>モデル径を基準にISO規格に準じたねじ加工を行うため、モデルと形状が変わります。</p>
+    <dl class="spec">
+      <dt>めねじ（M10指定）</dt><dd>下穴径<b>ø8.3</b>で加工。モデルのø10とは異なる形状になります</dd>
+      <dt>おねじ（M10指定）</dt><dd>外径<b>ø10</b>から加工。モデルのø9とは異なる形状になります</dd>
+    </dl>
+    <div class="info">ねじモデリング形状は認識されません。モデルにねじは作らずアップロードし、meviy画面上でおねじ／めねじを指定してください。</div>
+
+    <h3>不完全ねじ部の推奨値（満たさない場合はミスミ推奨値で加工）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>項目</th><th>おねじ／逃げ溝なし</th><th>めねじ／逃げ溝あり</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">不完全ねじ部長さ・逃げ溝幅の下限</td><td>ピッチ×2.0</td><td>ピッチ×2.5＋2</td></tr>
+        <tr><td class="rowhdr">ねじ部長さ／深さの下限</td><td>ピッチ×2.0</td><td>ピッチ×2.0</td></tr>
+        <tr><td class="rowhdr">逃げ溝深さ最小値</td><td>ピッチ×0.75</td><td>ピッチ×0.75</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">C面はバリの出ないよう面取り加工。逃げ溝深さをピッチ×0.75以下にするとねじ跡が残ります。</p>
+
+    <h3>穴底のドリル先端形状</h3>
+    <p>穴（旋削・切削）の底面にはドリル先端形状が残ります。内径Dとモデル深さの比（深さ÷内径）で仕上がりがA（1mm以上の底面フラット確保）／B（底面フラットなし）に分かれます。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>内径D</th><th>3D以下</th><th>3D超〜5D以下</th><th>5D超〜10D以下</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">D≦ø6</td><td>B</td><td>B</td><td>B</td></tr>
+        <tr><td class="rowhdr">ø6＜D≦ø30</td><td>A</td><td>B</td><td>B</td></tr>
+        <tr><td class="rowhdr">ø30＜D</td><td>A</td><td>A</td><td>A</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">例：内径ø10・モデル深さ35 → 35÷10＝3.5D ＝ B。底面フラット希望はコメント記載で可否確認。</p>
+
+    <h3>薄肉・薄板・ツバの判定ロジック</h3>
+    <figure class="fig"><img src="img/tup/12930_08.png" alt="残り肉厚を示す断面図と立体図" loading="lazy"><figcaption>赤矢印が残り肉厚。最外径ø10以下は0.5、ø10超は1.0を下回ると変形の恐れがあり要注意。<span class="src">出典：meviy使い方マニュアル「薄肉判定ロジック」</span></figcaption></figure>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>項目</th><th>条件</th><th>閾値（これ以下は要注意）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">残り肉厚①</td><td>最外径ø10以下</td><td>0.5以下</td></tr>
+        <tr><td class="rowhdr">残り肉厚①</td><td>最外径ø10超</td><td>1.0以下</td></tr>
+        <tr><td class="rowhdr">残り肉厚②③</td><td>—</td><td>1.0以下／1.0未満</td></tr>
+        <tr><td class="rowhdr">薄板</td><td>ø60以上</td><td>全長が外径の5%未満は反りが発生（例：ø60→3mm、ø100→5mm）</td></tr>
+        <tr><td class="rowhdr">ツバの厚み</td><td>—</td><td>1mm未満は見積不可（1mm以上で自動見積可）</td></tr>
+      </tbody>
+    </table></div>
+    <h3>モデル体積（除去率）の閾値</h3>
+    <p>モデル体積が素材体積（最外径半径²×π×全長）に対して以下の割合未満になると変形の恐れがあります。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>条件</th><th>モデル体積の閾値</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">鉄/鋼・SUS</td><td>5%以上</td></tr>
+        <tr><td class="rowhdr">アルミ・銅・樹脂</td><td>10%以上</td></tr>
+        <tr><td class="rowhdr">全材質（内径除去率40%超 かつ 外径除去率40%超）</td><td>15%以上</td></tr>
+        <tr><td class="rowhdr">全材質ø30超（内径除去率70%超）</td><td>20%以上</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>3D画面での寸法表記・小数桁ルール</h3>
+    <p>3Dビューワーに表示された寸法値を正として加工します。最終桁を四捨五入し、公差により表示桁数が変わります。</p>
+    <figure class="fig"><img src="img/tup/12600_01_A.png" alt="外径ø30・全長30の寸法表記例" loading="lazy"><figcaption>3D画面に表示される外径Dと全長Lの寸法表記例。この表示値が加工の基準となる。<span class="src">出典：meviy使い方マニュアル「3D画面での寸法表記ルール」</span></figcaption></figure>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>公差</th><th>表示桁数</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">一般公差 ／ ±0.1 ／ ±0.05</td><td>0.00（小数2桁）</td></tr>
+        <tr><td class="rowhdr">はめ合い公差</td><td>0.000（小数3桁）※全長・追加寸法には付与不可</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">ねじ設定時のピッチは並目は非表示、細目は表示。最外径精度あり例：ø30 g6 (-0.007/-0.02)。</p>
+  </section>
+
+  <!-- ============ ねじ・キー溝・穴・ポケット規格 ============ -->
+  <section id="thread">
+    <h2>ねじ・キー溝・穴・ポケット規格</h2>
+
+    <h3>おねじ・めねじ（mm）下穴径の例</h3>
+    <p>呼び径ごとにモデル径の範囲と自動見積可否が定義されます（○＝自動見積可、●＝タップ(MC穴)可、△＝品質同意で可、✖＝不可）。下穴径＝めねじのモデル径下限が目安です。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>呼び径</th><th>おねじ モデル径(ø)</th><th>めねじ／タップ モデル径(ø)</th><th>並目ピッチ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">M3</td><td>2.6〜3</td><td>2.4〜3</td><td>0.5</td></tr>
+        <tr><td class="rowhdr">M5</td><td>4.4〜5</td><td>4.1〜5</td><td>0.8</td></tr>
+        <tr><td class="rowhdr">M6</td><td>5.3〜6</td><td>4.9〜6</td><td>1.0</td></tr>
+        <tr><td class="rowhdr">M8</td><td>7.1〜8</td><td>6.6〜8</td><td>1.25</td></tr>
+        <tr><td class="rowhdr">M10</td><td>9〜10</td><td><b>8.3</b>〜10</td><td>1.5</td></tr>
+        <tr><td class="rowhdr">M12</td><td>10.8〜12</td><td>10.1〜12</td><td>1.75</td></tr>
+        <tr><td class="rowhdr">M16</td><td>14.7〜16</td><td>13.8〜16</td><td>2.0</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">対応表にないねじは非対応。<b>めねじ</b>＝中心軸上にある旋盤対応ねじ、<b>タップ穴</b>＝中心軸上にないMC対応ねじ。管用テーパねじはISO規格（JIS B 0203）基準で加工、ゲージ検査で合否判定。インサート穴はアルミ・樹脂で対応（インサート材質SUS304、呼び長さ0.5D／1D／1.5D／2D）。</p>
+
+    <h3>キー溝の認識条件とはめ合い</h3>
+    <p>JIS規格（B 1301:1996）と一致するキー溝には自動で公差が設定されます（b1/b2＝2〜32mm）。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>区分</th><th>規格一致</th><th>規格不一致</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">外径キー溝（b1）</td><td>外径キー溝・はめ合い公差「自動」</td><td>長穴扱い・はめ合い公差「手動」</td></tr>
+        <tr><td class="rowhdr">内径キー溝（b2）</td><td>内径キー溝・はめ合い公差「自動」</td><td>「一般公差」扱い・公差選択不可</td></tr>
+      </tbody>
+    </table></div>
+    <figure class="fig"><img src="img/tup/12604_01.png" alt="キー溝の溝幅b1と深さt1の寸法定義" loading="lazy"><figcaption>キー溝の溝幅b1・深さt1の取り方。JIS規格と一致すると自動で公差が設定される。<span class="src">出典：meviy使い方マニュアル「おねじ・めねじ/キー溝/穴/ポケット規格」</span></figcaption></figure>
+    <div class="note"><b>外径キー溝のはめ合い条件</b>：止まり隅部に丸形状がないと「外径キー溝」として認識されず、はめ合い公差を指定できません。公差設定が必要な場合は<b>溝幅に合った丸形状</b>で設計してください。</div>
+    <p class="dim">代表的なキー寸法（JIS）：b=2 → P9(-0.006/-0.031)・t1=1.2(+0.1/0)、b=8 → P9(-0.015/-0.051)・t1=4.0(+0.2/0) など。</p>
+
+    <h3>精度穴・皿穴・ポケット・長穴</h3>
+    <p>精度穴＝穴径公差にはめ合い／両側／片側公差を指定したストレート穴。自動見積可能な精度範囲は径区分ごとに定義されます。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>径（mm）</th><th>はめ合い</th><th>両側公差 最小値</th><th>片側公差 最小レンジ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">〜3</td><td>IT7級以上</td><td>0.005</td><td>0.01</td></tr>
+        <tr><td class="rowhdr">3〜6</td><td>IT7級以上</td><td>0.006</td><td>0.012</td></tr>
+        <tr><td class="rowhdr">6〜10</td><td>IT7級以上</td><td>0.008</td><td>0.015</td></tr>
+        <tr><td class="rowhdr">10〜18</td><td>IT7級以上</td><td>0.009</td><td>0.018</td></tr>
+        <tr><td class="rowhdr">30〜50</td><td>IT7級以上</td><td>0.013</td><td>0.025</td></tr>
+        <tr><td class="rowhdr">80〜120</td><td>IT7級以上</td><td>0.018</td><td>0.035</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">皿穴の認識：皿角度90°、d≧3.0mm、D&gt;1.4d（d≧4.0mm）／D&gt;1.7d（d&lt;4.0mm）。ポケット・長穴の対応長さℓは、マイナス溝ℓ≧0.5mm、その他ポケット／長穴・キー溝ℓ≧2mm（公差レンジ0.04〜は長穴・キー溝ℓ≧3mm）。</p>
+
+    <h3>止め輪（C形止め輪 溝幅推奨値）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>t：止め輪幅</th><th>m：3Dモデルに必要な幅</th><th>隅R</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1.0</td><td>1.15</td><td>R0.1以下</td></tr>
+        <tr><td class="rowhdr">1.5</td><td>1.65</td><td>R0.15以下</td></tr>
+        <tr><td class="rowhdr">2.0</td><td>2.2</td><td>R0.2以下</td></tr>
+        <tr><td class="rowhdr">3.0／4.0</td><td>3.2／4.2</td><td>R0.2以下</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">規格は軸用／穴用C形止め輪（JIS B 2804:2010）。小径向けE形止め輪規格は非対応。</p>
+
+    <h3>六角穴</h3>
+    <p>対辺距離2〜8mmで仕上り形状が分かれます。<b>対辺距離6mm未満かつ規格に記載がない場合は自動見積対象外</b>（例：5.5mmは対象外）。対辺距離の公差はJIS B 1176準拠、六角穴部に代表面粗さは適用されません。</p>
+  </section>
+
+  <!-- ============ 公差・精度 ============ -->
+  <section id="tolerance">
+    <h2>公差・精度</h2>
+
+    <h3>指示なき寸法の普通許容差（標準）</h3>
+    <p>3D CADアップロード段階では径情報と全長以外の寸法・公差は表示されません。指示なき場合は原点を加工基準に以下を適用します（JIS B 0405:1991／JIS B 0419:1991より抜粋、<b>meviy規格は5000mmまで保証</b>）。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>等級</th><th>0.5〜3</th><th>3超〜6</th><th>6超〜30</th><th>30超〜120</th><th>120超〜400</th><th>400超〜1000</th><th>1000超〜2000</th><th>2000超〜5000</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">m（中級）</td><td>±0.1</td><td>±0.1</td><td>±0.2</td><td>±0.3</td><td>±0.5</td><td>±0.8</td><td>±1.2</td><td>±2</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">面取り部の長さ（C・R）：0.5〜3は±0.2、3超〜6は±0.5、6超は±1（粗級）。角度公差：辺長10以下±1°、50超120以下±20′ など。直角度の普通公差：100以下0.4、300超1000以下0.8mm 等。</p>
+
+    <h3>指定可能なはめ合い公差</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>加工種</th><th>金属</th><th>樹脂</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">旋盤</td><td><b>IT6級〜</b></td><td><b>IT7級〜</b></td></tr>
+        <tr><td class="rowhdr">MC（二次加工）</td><td>IT7級〜</td><td>IT7級〜</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>指定可能な寸法公差（最小公差・レンジ）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>部位</th><th>区分</th><th>最小公差例</th><th>レンジ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">全長・長さ（金属）</td><td>L,ℓ≦200</td><td>±0.02</td><td>0.04</td></tr>
+        <tr><td class="rowhdr">全長・長さ（金属）</td><td>200〜500</td><td>±0.05</td><td>0.1</td></tr>
+        <tr><td class="rowhdr">全長・長さ（金属）</td><td>500〜2000</td><td>±0.2</td><td>0.4</td></tr>
+        <tr><td class="rowhdr">全長・長さ（樹脂）</td><td>L,ℓ≦100</td><td>±0.05</td><td>0.1</td></tr>
+        <tr><td class="rowhdr">溝外径D</td><td>一律</td><td>±0.02</td><td>0.04</td></tr>
+        <tr><td class="rowhdr">溝幅w（外径）</td><td>一律</td><td>±0.05</td><td>0.1</td></tr>
+        <tr><td class="rowhdr">溝内径d</td><td>—</td><td>±0.05</td><td>0.1</td></tr>
+        <tr><td class="rowhdr">溝幅w（内径）</td><td>—</td><td>±0.07</td><td>0.14</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>幾何公差</h3>
+    <p>平面度・平行度・直角度・真円度・同軸度・真直度・円筒度・円周振れ・全振れに対応（公差値0.01〜0.1）。穴・キー溝・切り欠き・内径溝・端面溝には指定できません。</p>
+    <div class="info">
+      <b>真円度の考え方</b>：真円度は直径の寸法公差の値と等しくとりますが、半径方向の円周振れ指定公差の値を超えてはなりません。<br>
+      例1）ø100 公差なし → 真円度0.1／ 例2）ø100 ±0.02 → 真円度0.04。
+    </div>
+    <p class="dim">旋盤加工の幾何公差精度基準（焼入れも保証、薄肉・長尺・除去率大は除く）：直角度・平行度はL≦100で0.06、同軸度はL≦100で0.1（mm）。樹脂は温度管理（23〜24℃）環境で検査し、出荷時点の検査結果で精度保証。片側＝一方向加工で完結、両側＝ワーク付け替えで2方向加工のため精度が異なります。</p>
+  </section>
+
+  <!-- ============ 外観品質・研削研磨・付帯 ============ -->
+  <section id="finish">
+    <h2>外観品質・研削研磨・付帯サービス</h2>
+
+    <h3>外観の品質保証範囲</h3>
+    <div class="info">
+      <b>外観保証</b>：爪がかからず、かつドットゲージで<b>0.7mm以上の傷がない</b>ことを保証。<b>代表面粗さ √Ra6.3【√Rz25】</b>（ユーザー設定でRa6.3／3.2を選択可）。
+    </div>
+    <figure class="fig"><img src="img/tup/13356_01.png" alt="切削丸物の外観品質の例" loading="lazy"><figcaption>外観保証の対象範囲。爪がかからず、ドットゲージで0.7mm以上の傷がないことを保証する。<span class="src">出典：meviy使い方マニュアル「外観品質について」</span></figcaption></figure>
+    <p class="dim">材質・サイズによっては素材面（磨き・圧延）で出荷する場合あり。カッターマーク・加工方法（切り落とし／突っ切り／ワイヤーカット）の指定はできません。</p>
+
+    <h3>研削・研磨</h3>
+    <p>研削（G）・バフ研磨（SPBF）に対応。粗さ区分Ra6.3／3.2／1.6／0.8／0.4。</p>
+    <div class="fig-row">
+      <figure class="fig"><img src="img/tup/36055_02.png" alt="外径研削・平面研削の指定例" loading="lazy"><figcaption>研削で高い面粗さ・寸法精度を得たい外径・平面を指定できる。<span class="src">出典：meviy使い方マニュアル「研削・研磨について」</span></figcaption></figure>
+      <figure class="fig"><img src="img/tup/36055_03.png" alt="バフ研磨の対象範囲" loading="lazy"><figcaption>バフ研磨は鏡面に近い外観が得られるが、隣接面にもバフが当たり外観が変化する場合がある。<span class="src">出典：meviy使い方マニュアル「研削・研磨について」</span></figcaption></figure>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>研削対応サイズ</th><th>外径D</th><th>全長L／長さℓ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">外径研削</td><td>3≦D≦8</td><td>50≦L≦150／12≦ℓ</td></tr>
+        <tr><td class="rowhdr">外径研削</td><td>8＜D≦100</td><td>50≦L≦300／12≦ℓ</td></tr>
+        <tr><td class="rowhdr">平面研削</td><td>10≦D≦200</td><td>厚さ5≦T≦50</td></tr>
+        <tr><td class="rowhdr">内面研削</td><td>3≦d≦30</td><td>ℓ≦d×3倍</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">バフ研磨：長さ12≦ℓ≦100、重量W≦2.5kg。隣接面にもバフが当たり外観が変化する場合あり。</p>
+
+    <h3>クリーン洗浄</h3>
+    <p>脱脂洗浄・精密洗浄・電解研磨＋精密洗浄の3方式。1個あたり1辺最大1,500mm、重量上限40kg（脱脂）／60kg（精密・電解研磨）。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>方式</th><th>用途</th><th>梱包</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">脱脂洗浄（SL-）</td><td>一般環境（通常組立等）</td><td>無添加ポリエチレンシート1重</td></tr>
+        <tr><td class="rowhdr">精密洗浄（SH-）</td><td>クリーン環境（液晶・車載カメラ等）</td><td>無添加ポリエチレンシート脱気2重</td></tr>
+        <tr><td class="rowhdr">電解研磨＋精密洗浄（SHD-）</td><td>真空・クリーン環境（半導体前工程等）</td><td>無添加ポリエチレンシート脱気2重</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">電解研磨＋精密洗浄はアルミ・SUS・SUS440C・C3604（一部）など「なし」材が中心で、表面処理品の多くは対象外。熱処理・バフ研磨指定時は電解研磨不可。洗浄により防錆油も除去され未洗浄品より錆びやすくなる場合あり。</p>
+
+    <h3>刻印（レーザマーキング）</h3>
+    <dl class="spec">
+      <dt>最大ワークサイズ</dt><dd>円筒方向 L300mm×ø115／端面方向 L115mm×ø300</dd>
+      <dt>位置</dt><dd>円筒面・平面に指示可。角度は45degピッチ（0〜360deg、目安値）</dd>
+      <dt>文字</dt><dd>半角英数字＋一部記号（+-.#$%&()=*:?/_~ø）。改行・スペース可。フォント・文字間隔指定不可</dd>
+      <dt>文字サイズ</dt><dd>3〜15mm（1mmピッチ）／17.5〜30mm（2.5mmピッチ）。寸法・角度精度は保証外</dd>
+    </dl>
+
+    <h3>品質管理・検査</h3>
+    <p>標準検査：内径・外径はマイクロメーター、長さはノギス、はめ合いは限界栓ゲージ／ピンゲージ、おねじ・めねじはISO2級相当ボルト・ナットの通り、外観は粗さ標準片・ドットゲージ・粗さ測定器。幾何公差は偏心測定器・真円度測定機・三次元測定機等（検査方法・検査表添付は指定不可）。表面処理のない鉄/鋼材や黒染め品には防錆油を塗布して出荷します。</p>
+  </section>
+
+  <!-- ============ 出荷日・納期・割引 ============ -->
+  <section id="ship">
+    <h2>出荷日・納期・割引</h2>
+    <p>締め時間内の注文で翌営業日から1日目カウント（土日祝非カウント）。熱処理を選択可、指示なき場合は生材。</p>
+
+    <h3>納期選択肢</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>納期</th><th>出荷日</th><th>対象（標準納期比）</th><th>型番末尾</th><th>締め時間</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">超短納期</td><td>1日目〜</td><td><b>ø63×全長200mm以下</b></td><td>-R</td><td>12:30</td></tr>
+        <tr><td class="rowhdr">短納期</td><td>3日目〜</td><td>ø200×全長200mm以下</td><td>-E</td><td>15:00</td></tr>
+        <tr><td class="rowhdr">標準納期</td><td>6日目〜</td><td>標準</td><td>—</td><td>20:00</td></tr>
+        <tr><td class="rowhdr">長納期</td><td>20日目〜</td><td>原則全商品（1個30%OFF／2〜200個10%OFF）</td><td>-L</td><td>20:00</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>材質別 標準出荷日（なし表面処理）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>標準</th><th>超短納期</th><th>短納期</th><th>長納期</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">鉄/鋼（S45C等）</td><td>6日目〜（SKD61は9日目〜）</td><td>1日目〜（SCM440/SKD61/SUJ2は対象外）</td><td>3日目〜（SKD61は対象外）</td><td>＋14日</td></tr>
+        <tr><td class="rowhdr">アルミ</td><td>6日目〜</td><td>1日目〜（A7075は対象外）</td><td>3日目〜</td><td>＋14日</td></tr>
+        <tr><td class="rowhdr">SUS303/304/316/316L</td><td>6日目〜</td><td>1日目〜</td><td>3日目〜</td><td>20日目〜</td></tr>
+        <tr><td class="rowhdr">SUS440C</td><td>6日目〜</td><td>対象外</td><td>3日目〜</td><td>20日目〜</td></tr>
+        <tr><td class="rowhdr">真鍮 C3604</td><td>9日目〜</td><td>×（今後対応予定）</td><td>5日目〜（ø100以下）</td><td>＋14日</td></tr>
+        <tr><td class="rowhdr">樹脂（POM等）</td><td>6日目〜（一部8日目〜）</td><td>1日目〜（一部×）</td><td>3日目〜（一部×）</td><td>＋14日</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">表面処理の加算日数例：無電解ニッケル・黒染め＋1日、硬質クロム・三価クロメート＋2日、イソナイト・低温黒色クロム＋4日、パーカー処理＋5日（SKD11/61は対象外）。熱処理加算例：S45C 標準6日＋熱処理3日＝9日目。</p>
+
+    <h3>大口（数量スライド）割引</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>数量</th><th>最外径ø16以下</th><th>最外径ø16超</th><th>加算日数</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">2〜10</td><td>30%OFF</td><td>30%OFF</td><td>+0日</td></tr>
+        <tr><td class="rowhdr">11〜30</td><td>40%OFF</td><td>35%OFF</td><td>+0日</td></tr>
+        <tr><td class="rowhdr">31〜50</td><td>50%OFF</td><td>40%OFF</td><td>+0日</td></tr>
+        <tr><td class="rowhdr">51〜100</td><td>60%OFF</td><td>60%OFF</td><td>+3日</td></tr>
+        <tr><td class="rowhdr">101〜200</td><td>70%OFF</td><td>70%OFF</td><td>+5日</td></tr>
+        <tr><td class="rowhdr">201〜</td><td colspan="3">担当者見積（時間がかかります）</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">長納期割引（1個30%OFF・2個以上10%OFF）と併用可。例：1個10,000円→長納期7,000円。クリーン洗浄は全納期＋4日加算。</p>
+  </section>
+
+  <!-- ============ 見積もりエラー ============ -->
+  <section id="error">
+    <h2>よくある見積もりエラー</h2>
+    <figure class="fig"><img src="img/tup/12596_01_B.png" alt="見積もりエラーとして表示される形状の例" loading="lazy"><figcaption>自動見積もりできない形状は、3Dビューワー上で該当箇所が示される。下表の原因・対処を参照。<span class="src">出典：meviy使い方マニュアル「切削丸物のお見積もりエラー事例集」</span></figcaption></figure>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>事例</th><th>原因</th><th>対処</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">ポケット隅部</td><td>隅部のピン角はエンドミルで加工不可</td><td>工具Rを考慮したRモデリング（例：幅2〜3mm深さ6→R1、幅20以上深さ80→R10）</td></tr>
+        <tr><td class="rowhdr">ポケット根元R</td><td>根元RがあるとエンドミルNG</td><td>根元Rはモデリングしない</td></tr>
+        <tr><td class="rowhdr">薄肉</td><td>肉厚が薄く一般公差含む精度保証ができない</td><td>肉厚を修正（薄肉判定ロジック参照）</td></tr>
+        <tr><td class="rowhdr">薄板</td><td>ø60以上で全長が外径の5%未満は反る</td><td>板厚を外径×5%以上に（ø60→3mm、ø100→5mm）</td></tr>
+        <tr><td class="rowhdr">ツバの厚み</td><td>ツバ厚1mm未満</td><td>1mm以上に修正</td></tr>
+        <tr><td class="rowhdr">対象外形状</td><td>ねじモデリングがあると対象外形状と認識</td><td>ねじはモデリングせず、画面上でおねじ・めねじを指定</td></tr>
+        <tr><td class="rowhdr">その他穴</td><td>C/R面取り・45°以外の面取り・テーパ穴・先細り二段穴・内径や外径溝にかかる穴は「その他穴」</td><td>形状を修正、またはコメント欄に穴情報を記入</td></tr>
+        <tr><td class="rowhdr">形状認識失敗</td><td>3D CADデータの品質問題で読込時に形状が変形（「モデルにエラー形状が存在します」等）</td><td>形状確認・修正、別形式（STEP／Parasolid）で再アップロード</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+</main></div></div>
+
+<footer>
+  <p>← <a href="index.html">ホーム</a> ｜ <a href="basics.html">横断の基本情報</a></p>
+  <p>出典：<a href="https://jp.meviy.misumi-ec.com/help/ja/technical_info/tup/" target="_blank" rel="noopener">meviy使い方マニュアル</a>（本サイトは技術情報を設計者向けに再構成した非公式版。最新・正式仕様は公式で確認）</p>
+</footer>
+
+<script src="scrollspy.js"></script>
+</body>
+</html>

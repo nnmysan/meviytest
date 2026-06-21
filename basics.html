@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>基本情報（横断）｜meviy 仕様ガイド</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav"><div class="inner">
+  <span class="brand"><b>meviy</b> 仕様ガイド</span>
+  <a class="link" href="index.html">ホーム</a>
+  <a class="link active" href="basics.html">基本情報（横断）</a>
+  <a class="link" href="sheet-metal.html">板金</a>
+  <a class="link" href="sheet-metal-welding.html">板金溶接</a>
+  <a class="link" href="milling.html">切削（角物）</a>
+  <a class="link" href="turning.html">切削（丸物）</a>
+</div></nav>
+
+<div class="wrap"><div class="docpage">
+<aside class="sidebar"><div class="side-inner">
+  <div class="side-title">基本情報（横断）</div>
+  <nav class="side-nav">
+    <a href="#choose">① サービスの選び方</a>
+    <a href="#material">② 対応材質</a>
+    <a href="#size">③ サイズ・板厚</a>
+    <a href="#surface">④ 表面処理</a>
+    <a href="#heat">⑤ 熱処理</a>
+    <a href="#tolerance">⑥ 公差・精度</a>
+    <a href="#delivery">⑦ 納期・割引</a>
+  </nav>
+</div></aside>
+<main class="doc-main">
+  <div class="eyebrow">横断リファレンス</div>
+  <h1>基本情報 ── 4サービス横並び比較</h1>
+  <p class="lead">対応材質・サイズ・表面処理・熱処理・公差・納期を、板金／板金溶接／切削（角物）／切削（丸物）で横断的にまとめます。
+     「どのサービスなら、この材質・処理・精度ができるか」をこの1ページで判断し、詳細は各サービスページへ。</p>
+
+  <div class="note"><b>注意：</b>本ページは技術情報を設計者向けに再構成した非公式版です。掲載は代表値・代表材質で、
+     対応可否は形状・サイズ・他の見積条件で変わります。最新・正式な仕様は必ず公式
+     <a href="https://jp.meviy.misumi-ec.com/help/ja/" target="_blank" rel="noopener">meviy使い方マニュアル</a> と、アップロード後の3Dビューワー表示で確認してください。</div>
+
+  <!-- ① 選び方 -->
+  <section id="choose">
+    <h2>① サービスの選び方</h2>
+    <p>作りたい部品の形状から、まず加工サービスを選びます。切削とは別に、切削は丸物／角物を3Dデータから自動判定します。</p>
+    <div class="grid c2">
+      <a class="card" href="sheet-metal.html"><span class="tag">SHM</span>
+        <h3>板金</h3><p>板材を抜き・曲げで成形。薄物のカバー・ブラケット・筐体。平板〜各種曲げ。</p>
+        <div class="arrow">板金の詳細 →</div></a>
+      <a class="card" href="sheet-metal-welding.html"><span class="tag">SWD</span>
+        <h3>板金溶接</h3><p>複数の板金を溶接した構造部品。フレーム・ボックス・架台。板厚違いも可。</p>
+        <div class="arrow">板金溶接の詳細 →</div></a>
+      <a class="card" href="milling.html"><span class="tag">MPB</span>
+        <h3>切削（角物）</h3><p>角材ブロックを6方向フライス。プレート・ブロック・治具。材質37・最多。</p>
+        <div class="arrow">切削（角物）の詳細 →</div></a>
+      <a class="card" href="turning.html"><span class="tag">TUP</span>
+        <h3>切削（丸物）</h3><p>丸棒を旋盤主体に加工。シャフト・ピン・カラー・ブッシュ。回転対称部品。</p>
+        <div class="arrow">切削（丸物）の詳細 →</div></a>
+    </div>
+    <div class="info"><b>切削の丸物/角物判定：</b>最外径の円筒面が<b>合計140°超</b>なら丸物、<b>140°以下</b>なら角物として自動認識されます。</div>
+  </section>
+
+  <!-- ② 材質 -->
+  <section id="material">
+    <h2>② 対応材質</h2>
+    <p>材質ラインアップは切削が最多（角物37・丸物31）。板金系は鉄・ステン・アルミが中心で、樹脂・銅は板金のみ一部対応（板金溶接は鉄・ステン・アルミ）。セルは代表材質の例です。</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>区分</th><th>板金</th><th>板金溶接</th><th>切削（角物）</th><th>切削（丸物）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">鉄・鋼</td>
+          <td>SPCC / SPHC / SS400 / SECC</td>
+          <td>SPCC / SPHC / SS400 / SECC</td>
+          <td>SS400 / S45C / S50C / SCM440</td>
+          <td>S45C / SS400 / SCM435・440 / SUJ2</td></tr>
+        <tr><td class="rowhdr">工具鋼・プリハードン鋼</td>
+          <td class="dim">―</td><td class="dim">―</td>
+          <td>NAK55 / SKD11 / DC53 / SK105 / SKS3</td>
+          <td>SKS3 / SKD11 / SKD61</td></tr>
+        <tr><td class="rowhdr">ステンレス</td>
+          <td>SUS304 / 316 / 430</td>
+          <td>SUS304 / 430</td>
+          <td>SUS303 / 304 / 316 / 316L / 430</td>
+          <td>SUS303 / 304 / 316 / 316L / 440C</td></tr>
+        <tr><td class="rowhdr">アルミ</td>
+          <td>A5052</td>
+          <td>A5052</td>
+          <td>A2017 / A5052 / A5083 / A6061 / A6063S / A7075</td>
+          <td>A2017 / A5052 / A5056 / A6061 / A7075</td></tr>
+        <tr><td class="rowhdr">銅・真鍮</td>
+          <td>C1020 / C1100 / C2801P</td>
+          <td class="dim">―</td>
+          <td>C1020 / C1100 / C2801P / C3604</td>
+          <td>C3604（快削真鍮）</td></tr>
+        <tr><td class="rowhdr">樹脂</td>
+          <td>透明樹脂（PET / アクリル / PC / 塩ビ）・複合板</td>
+          <td class="dim">―</td>
+          <td>POM / MCナイロン / PEEK / PTFE / PPS / PE / ABS / PP 他</td>
+          <td>POM / MCナイロン / PEEK / PPS / PC / アクリル / PTFE 他</td></tr>
+        <tr><td class="rowhdr">その他</td>
+          <td>パンチングメタル（SUS304-BA）</td>
+          <td>パンチングメタル（SUS304-BA）</td>
+          <td>ウレタン（A50 / A70 / A90）</td>
+          <td class="dim">―</td></tr>
+        <tr><td class="rowhdr">材質数の目安</td>
+          <td>鉄・ステン・アルミ＋樹脂系</td>
+          <td>鉄・ステン・アルミ</td>
+          <td><b>37材質</b></td>
+          <td><b>31材質</b></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="info">真鍮 <b>C3604</b> は傷つきやすく、湿気や手の皮脂で変色・錆びが出やすい。納入後の取り扱いに注意。各サービスページに材料特性（引張強さ・比重・熱伝導率など）の一覧があります。</div>
+  </section>
+
+  <!-- ③ サイズ -->
+  <section id="size">
+    <h2>③ サイズ・板厚</h2>
+    <p>板金系は「板厚」、切削系は「外径・外形寸法」が基準です。切削の外形枠は材質で個別規定のため代表値を示します。</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>項目</th><th>板金</th><th>板金溶接</th><th>切削（角物）</th><th>切削（丸物）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">板厚</td>
+          <td><b>0.05〜16.0mm</b><br><span class="dim">SS400で9/10/12/16mm</span></td>
+          <td><b>1.0〜16.0mm</b><br><span class="dim">板厚違いの組合せも可</span></td>
+          <td class="dim">―（外形で規定）</td>
+          <td class="dim">―</td></tr>
+        <tr><td class="rowhdr">外形・寸法</td>
+          <td>外形 5〜1700mm程度<br><span class="dim">材質・表面処理で上限規定</span></td>
+          <td>30〜2000mm程度<br><span class="dim">最大辺・重量制限あり</span></td>
+          <td>材質で個別規定</td>
+          <td>外径 ø3〜500mm／全長〜5000mm<br><span class="dim">材質で上限が変わる</span></td></tr>
+        <tr><td class="rowhdr">板厚公差</td>
+          <td>±10%目安（シム用は別規定）</td>
+          <td>±10%目安</td>
+          <td class="dim">―</td><td class="dim">―</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note">板厚16.0mmは鉄・ステンの厚板拡大による上限。シムプレートはSUS304(H)で板厚0.05mm（公差±0.005mm）まで対応。</div>
+  </section>
+
+  <!-- ④ 表面処理 -->
+  <section id="surface">
+    <h2>④ 表面処理</h2>
+    <p>切削は表面処理が最多（角物11・丸物12）。アルマイトはアルミ専用、黒染め・パーカーは鉄系専用など、<b>材質と表面処理は組み合わせで決まります</b>。</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>表面処理</th><th>主な対象</th><th>板金</th><th>板金溶接</th><th>切削角物</th><th>切削丸物</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">アルマイト（白/黒/硬質）</td><td>アルミ</td>
+          <td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">三価クロメート（白/黒）</td><td>鉄・亜鉛メッキ上</td>
+          <td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">無電解ニッケルめっき</td><td>鉄・ステン他</td>
+          <td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">四三酸化鉄皮膜（黒染め）</td><td>鉄系</td>
+          <td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">パーカー（リン酸塩皮膜）</td><td>鉄系<span class="dim">／SKD11・61は対象外</span></td>
+          <td class="dim">―</td><td class="dim">―</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">塗装（粉体／溶剤）</td><td>鉄・ステン・アルミ</td>
+          <td><span class="yes">○</span></td><td><span class="yes">○</span><span class="dim">（推奨）</span></td><td class="dim">△</td><td class="dim">△</td></tr>
+        <tr><td class="rowhdr">アロジン処理相当</td><td>アルミ</td>
+          <td><span class="yes">○</span></td><td class="dim">△</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="info">板金溶接の鉄材は<b>溶接焼けで錆びやすい</b>ため、塗装・メッキを推奨。切削では公差レンジ0.1未満を指定できない処理（三価クロメート・イソナイト・硬質アルマイト白など）があります。</div>
+  </section>
+
+  <!-- ⑤ 熱処理 -->
+  <section id="heat">
+    <h2>⑤ 熱処理</h2>
+    <p>焼入れ等の熱処理は<b>切削（角物・丸物）のみ</b>。板金・板金溶接は対象外です。指示がなければ生材で提供されます。</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>項目</th><th>板金</th><th>板金溶接</th><th>切削（角物）</th><th>切削（丸物）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">焼入れ対応</td>
+          <td><span class="no">×</span></td><td><span class="no">×</span></td><td><span class="yes">○</span></td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">対応する焼入れ</td>
+          <td class="dim">―</td><td class="dim">―</td>
+          <td>ズブ／真空／高周波焼入れ</td><td>ズブ／真空／高周波焼入れ</td></tr>
+        <tr><td class="rowhdr">指示なしの状態</td>
+          <td>―</td><td>―</td><td>生材</td><td>生材</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="grid c2">
+      <div class="card"><span class="tag" style="background:rgba(52,211,153,.12);color:#34d399;border-color:rgba(52,211,153,.3);">焼入れ可</span>
+        <div class="pills" style="margin-top:8px;">
+          <span class="pill">S45C</span><span class="pill">SCM435/440</span><span class="pill">SKD11</span>
+          <span class="pill">SKS3</span><span class="pill">SUJ2</span><span class="pill">SUS440C</span></div></div>
+      <div class="card"><span class="tag" style="background:rgba(251,113,133,.12);color:#fb7185;border-color:rgba(251,113,133,.3);">焼入れ不可</span>
+        <div class="pills" style="margin-top:8px;">
+          <span class="pill">アルミ</span><span class="pill">真鍮</span><span class="pill">SS400</span>
+          <span class="pill">オーステナイト系SUS（303/304/316/316L）</span></div></div>
+    </div>
+    <div class="note"><b>高周波焼入れ：</b>指定範囲の周囲5mm程度も焼きが入る。硬化層深さは1mm以上を保証（深さの任意指定は不可）。<b>SUJ2</b>は焼入れ後HRC58〜63。</div>
+  </section>
+
+  <!-- ⑥ 公差 -->
+  <section id="tolerance">
+    <h2>⑥ 公差・精度</h2>
+    <p>指示なき寸法には普通許容差が適用されます。指定公差・はめ合いは各サービスページに詳細表があります。</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>項目</th><th>板金</th><th>板金溶接</th><th>切削（角物）</th><th>切削（丸物）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">普通許容差</td>
+          <td>板金用の許容寸法公差表</td>
+          <td>JIS B0405 C級相当</td>
+          <td>JIS B0405 / B0419</td>
+          <td>JIS B0405 / B0419（5000mmまで保証）</td></tr>
+        <tr><td class="rowhdr">指定公差</td>
+          <td>通し穴径・穴間・端面間（曲げ・外形は対象外）</td>
+          <td>面取り・溶接基準あり</td>
+          <td>寸法／角度／穴深さ公差を指定可</td>
+          <td>寸法公差・はめ合い・真円度を指定可</td></tr>
+        <tr><td class="rowhdr">はめ合い</td>
+          <td class="dim">―</td><td class="dim">―</td>
+          <td>指定可</td>
+          <td>金属IT6級〜／樹脂IT7級〜</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="info">切削丸物の真円度は直径の寸法公差値と等しくとり（円周振れ指定を超えない）。例：ø100±0.02 → 真円度0.04（公差指定なしは0.1）。</div>
+  </section>
+
+  <!-- ⑦ 納期 -->
+  <section id="delivery">
+    <h2>⑦ 納期・割引</h2>
+    <p>全サービス共通で<b>納期選択サービス</b>があります。急ぎは短納期、コスト優先は長納期（30%OFF）。具体的な出荷日は材質・表面処理・形状・数量で変わります。</p>
+    <div class="tbl-scroll">
+    <table>
+      <thead><tr><th>納期選択</th><th>出荷日の目安</th><th>特長</th><th>型番末尾</th><th>締め時間</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">短納期</td><td>1日目〜</td><td>最短で急ぎ対応（品質は標準と同等）</td><td>-E</td><td>15:00</td></tr>
+        <tr><td class="rowhdr">標準納期</td><td>3日目〜</td><td>デフォルト</td><td>―</td><td>20:00</td></tr>
+        <tr><td class="rowhdr">長納期</td><td>20日目〜</td><td><b>価格30%OFF</b>（品質は標準と同等）</td><td>-L</td><td>―</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note">数量スライド割引：板金は2〜4個で10%、5〜9個14%、10〜20個18%、21〜100個で最大40%（数量で出荷日も変動）。
+       追加工（クリーン洗浄・刻印・ナット取付など）は出荷日が加算されます。詳細は各サービスページ参照。</div>
+  </section>
+</main></div>
+
+  <footer>
+    <p>← <a href="index.html">ホーム</a> ｜ サービス別の詳細：
+       <a href="sheet-metal.html">板金</a>・<a href="sheet-metal-welding.html">板金溶接</a>・
+       <a href="milling.html">切削（角物）</a>・<a href="turning.html">切削（丸物）</a></p>
+    <p>出典：ミスミ meviy 技術情報。本サイトは設計者向けに再構成した非公式版。最新・正式な仕様は
+       <a href="https://jp.meviy.misumi-ec.com/help/ja/" target="_blank" rel="noopener">公式マニュアル</a> を確認してください。</p>
+  </footer>
+</div>
+
+<script src="scrollspy.js"></script>
+</body>
+</html>

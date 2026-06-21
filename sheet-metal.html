@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>板金 ｜ meviy 仕様ガイド</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="nav"><div class="inner">
+  <span class="brand"><b>meviy</b> 仕様ガイド</span>
+  <a class="link" href="index.html">ホーム</a>
+  <a class="link" href="basics.html">基本情報（横断）</a>
+  <a class="link active" href="sheet-metal.html">板金</a>
+  <a class="link" href="sheet-metal-welding.html">板金溶接</a>
+  <a class="link" href="milling.html">切削（角物）</a>
+  <a class="link" href="turning.html">切削（丸物）</a>
+</div></nav>
+
+<div class="wrap"><div class="docpage">
+<aside class="sidebar"><div class="side-inner">
+  <div class="side-title">板金</div>
+  <nav class="side-nav">
+    <a href="#overview">1. 概要・対応形状</a>
+    <a href="#material">2. 対応材質・板厚・外形寸法</a>
+    <a href="#shim">3. 薄板・シム／透明樹脂／複合板</a>
+    <a href="#surface">4. 表面処理</a>
+    <a href="#heat">5. 熱処理</a>
+    <a href="#bend">6. 曲げ加工・R曲げ</a>
+    <a href="#hole">7. 穴・タップ・皿穴・だるま穴</a>
+    <a href="#nut">8. ナット・ソケット・ねじインサート</a>
+    <a href="#limit">9. 加工限界・モデリング基本ルール</a>
+    <a href="#tolerance">10. 公差・精度</a>
+    <a href="#extra">11. 付帯サービス</a>
+    <a href="#delivery">12. 出荷日・納期・割引</a>
+    <a href="#error">13. よくある見積もりエラー</a>
+  </nav>
+</div></aside>
+<main class="doc-main">
+  <p class="eyebrow">SHM ／ Sheet Metal</p>
+  <h1>板金</h1>
+  <p class="lead">3Dデータをアップロードするだけで、板金部品の即時見積もり・製作が可能です。平板・曲げ・各種穴加工・タップ・ナット/ソケット取付・表面処理・洗浄・刻印まで対応し、最短1日目出荷の短納期から30%OFFの長納期まで選べます。本ページでは設計者が確認すべき対応材質・板厚・公差・形状ルール・付帯サービス・納期をまとめます。</p>
+
+  <!-- ============ 1. 概要 ============ -->
+  <section id="overview">
+    <h2>1. 概要・対応形状</h2>
+    <p>meviyの板金部品サービスは、定尺材から切り出し・抜き・曲げ加工で部品を製作します。平板部品から各種曲げ形状まで自動見積もりに対応します。</p>
+
+    <div class="fig-row">
+      <figure class="fig"><img src="img/shm/fcpl_img_correspond01.png" alt="板金部品の材質・表面処理・サイズの対応イメージ" loading="lazy"><figcaption>板金部品サービスの対応イメージ（材質・表面処理・サイズ）。<span class="src">出典：meviy使い方マニュアル「材質・表面処理・サイズ」</span></figcaption></figure>
+      <figure class="fig"><img src="img/shm/3578_01.png" alt="見積もり可能な板金形状の例" loading="lazy"><figcaption>自動見積もりが可能な板金形状の代表例。<span class="src">出典：meviy使い方マニュアル「見積もり可能形状」</span></figcaption></figure>
+    </div>
+
+    <h3>見積もり可能な形状</h3>
+    <div class="pills">
+      <span class="pill cat">対応形状</span>
+      <span class="pill">平板</span><span class="pill">円形</span>
+      <span class="pill">L曲げ</span><span class="pill">Z曲げ（段曲げ）</span>
+      <span class="pill">凸曲げ</span><span class="pill">コの字曲げ</span>
+      <span class="pill">角度指定曲げ</span><span class="pill">フランジ付形状</span>
+      <span class="pill">曲げ部切欠き</span><span class="pill">切起こし（部分曲げ）</span>
+      <span class="pill">切欠き（角・Uの字）</span><span class="pill">逃げ（角）</span>
+    </div>
+    <div class="note">加工が難しい形状（代表例）：<b>部品繋ぎ・文字抜き・ギア形状・尖形</b>。これらを含め、外形・寸法条件や設備の加工限界により製作できない場合があります。その際はmeviyサポートよりご連絡します。</div>
+  </section>
+
+  <!-- ============ 2. 材質 ============ -->
+  <section id="material">
+    <h2>2. 対応材質・板厚・外形寸法</h2>
+    <p>材質区分ごとに、表面処理・板厚（mm）・外形寸法範囲（縦・横・高さ、mm）を示します。<b>板厚公差はシム用・透明樹脂を除き±10%が目安</b>です。</p>
+
+    <h3>鉄系</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>表面処理</th><th>板厚（mm）</th><th>外形寸法（板厚2.0以下／超）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SPCC / SPHC<br><span class="dim">SS400(板厚9のみ)</span></td><td>素地</td><td>0.8 1.0 1.2 1.6 2.0 2.3 3.2 4.5 6.0 9.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SPCC / SPHC</td><td>粉体塗装／溶剤塗装</td><td>0.8 1.0 1.2 1.6 2.0 2.3 3.2 4.5 6.0</td><td>5～1700／10～1700 <span class="dim">※板厚0.8/1.0/6.0は上限1200</span></td></tr>
+        <tr><td class="rowhdr">SPCC / SPHC</td><td>無電解ニッケルメッキ／四三酸化鉄皮膜／三価クロメート(白)</td><td>0.8 1.0 1.2 1.6 2.0 2.3 3.2 4.5 6.0 9.0</td><td>5～1200／10～1200</td></tr>
+        <tr><td class="rowhdr">SPCC / SPHC</td><td>三価クロメート(黒)</td><td>0.8 1.0 1.2 1.6 2.0 2.3 3.2 4.5 6.0</td><td>5～300／10～300</td></tr>
+        <tr><td class="rowhdr"><b>SS400</b></td><td>素地</td><td><b>10.0 12.0 16.0</b></td><td>20～1700（板厚2.0超のみ）</td></tr>
+        <tr><td class="rowhdr">SECC（電気亜鉛メッキ鋼板）</td><td>電気亜鉛メッキ</td><td>0.8 1.0 1.2 1.6 2.0 2.3 3.2</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SPCC（溶融亜鉛メッキ鋼板）</td><td>溶融亜鉛メッキ</td><td>1.6 2.3</td><td>5～1200／10～1200</td></tr>
+        <tr><td class="rowhdr">SPCC（シム用）</td><td>素地</td><td>0.1 0.2 0.3 0.5</td><td>横5～850・縦5～300（平板のみ）</td></tr>
+      </tbody>
+    </table></div>
+    <div class="info"><b>SS400</b>は一般構造用圧延鋼材。引張強さ400N/mm²以上が名称の由来で、低コスト・加工良好。<b>板厚9/10/12/16mm</b>の厚板に対応します（9mmはSPCC/SPHC枠、10/12/16mmはSS400素地枠）。SPCC/SPHCは錆びやすいため加工後の表面処理を推奨します。</div>
+
+    <h3>ステンレス系</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>仕上げ方法</th><th>板厚（mm）</th><th>外形寸法（板厚2.0以下／超）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SUS304</td><td>No.1</td><td>9.0 / 10.0 / 12.0</td><td>9.0は10～1700／10.0・12.0は20～1700</td></tr>
+        <tr><td class="rowhdr">SUS304</td><td>2B</td><td>0.8 1.0 1.2 1.5 2.0 2.5 3.0 4.0 5.0 6.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SUS304</td><td>2B（片面保護シート付）</td><td>0.8 1.0 1.2 1.5 2.0 2.5 3.0</td><td>上限1200まで</td></tr>
+        <tr><td class="rowhdr">SUS304</td><td>片面#400研磨（片面保護シート付）</td><td>0.8 1.0 1.2 1.5 2.0 3.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SUS304</td><td>片面ヘアライン（片面保護シート付）</td><td>0.8 1.0 1.2 1.5 2.0 3.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SUS316</td><td>2B</td><td>0.8 1.0 1.2 1.5 2.0 3.0 4.0 5.0 6.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SUS430</td><td>2B</td><td>0.8 1.0 1.2 1.5 2.0 3.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">SUS304(H)（シム用）</td><td>素地</td><td>0.05 0.1 0.2 0.3 0.5 0.8 1.0</td><td>横5～850・縦5～300（平板のみ）</td></tr>
+      </tbody>
+    </table></div>
+    <div class="info">SUS304(2B)＝汎用ステンレス。SUS316＝耐食性・耐孔食性を向上（沿岸・海水環境向け）。SUS430＝磁性あり・ニッケル無しのフェライト系。<br>※長納期選択時、SUS304(2B)板厚0.8～3.0mmはSUS304(2B)相当材を使用する場合があります。</div>
+
+    <h3>アルミニウム</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>表面処理</th><th>板厚（mm）</th><th>外形寸法（板厚2.0以下／超）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">A5052</td><td>素地</td><td>0.8 1.0 1.2 1.5 1.6 2.0 2.5 3.0 4.0 5.0 6.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">A5052</td><td>アルマイト(白)／(黒)</td><td>同上</td><td>5～1200／10～1200</td></tr>
+        <tr><td class="rowhdr">A5052</td><td>アルマイト(つや消し黒)</td><td>同上</td><td>5～1100／10～1100</td></tr>
+        <tr><td class="rowhdr">A5052</td><td>アロジン処理相当(三価クロム化成処理)</td><td>同上</td><td>5～1000／10～1000</td></tr>
+        <tr><td class="rowhdr">A5052(アルマイト鋼板白)</td><td>アルマイト(白)</td><td>1.0 1.5 2.0 3.0</td><td>5～1700／10～1700</td></tr>
+        <tr><td class="rowhdr">A5052(アルマイト鋼板黒)</td><td>アルマイト(黒)</td><td>1.0 1.5 2.0 3.0</td><td>5～1700／10～1700</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">A5052＝最も一般的なアルミ合金。切削性・耐食性・入手性に優れます。</p>
+
+    <h3>銅・真鍮</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>板厚（mm）</th><th>外形寸法 横(長手)／縦(短手)</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">C1020（無酸素銅）</td><td>1.0 1.5 2.0</td><td>横5～1200／縦5～360</td></tr>
+        <tr><td class="rowhdr">C1020（無酸素銅）</td><td>3.0</td><td>横10～1500／縦10～1000</td></tr>
+        <tr><td class="rowhdr">C1100（タフピッチ銅）<br>C2801P（真鍮・黄銅）</td><td>1.0 2.0</td><td>横5～1500／縦5～1000</td></tr>
+        <tr><td class="rowhdr">C1100 / C2801P</td><td>3.0</td><td>横10～1500／縦10～1000</td></tr>
+        <tr><td class="rowhdr">C2680P / C2801P（シム用）</td><td>0.05 ／ 0.1 0.2 0.3 0.5 1.0</td><td>横5～850(0.05)・横5～300／縦5～280</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">C1020＝高純度純銅で水素脆性なし。C1100＝安価な純銅（水素脆性あり）。C2801P＝真鍮（銅＋亜鉛）で機械的強度が高い。シム用は板厚0.05～0.1mmがC2680P、0.2～1.0mmがC2801P。</p>
+
+    <h3>パンチングメタル（SUS304-BA・丸孔60°千鳥タイプ）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>孔径×孔ピッチ</th><th>開口率</th><th>板厚（mm）</th><th>外形寸法（縦・横・高さ）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">ø1 × 2p</td><td>22.6%</td><td>0.8</td><td>30～900</td></tr>
+        <tr><td class="rowhdr">ø2 × 3p</td><td>40.3%</td><td>1.0</td><td>30～900</td></tr>
+        <tr><td class="rowhdr">ø3 × 5p</td><td>32.7%</td><td>1.0 1.5</td><td>30～900</td></tr>
+        <tr><td class="rowhdr">ø5 × 8p</td><td>35.4%</td><td>1.0 1.5</td><td>30～900</td></tr>
+        <tr><td class="rowhdr">ø8 × 12p</td><td>40.2%</td><td>1.5</td><td>30～900</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 3. シム・透明樹脂・複合板 ============ -->
+  <section id="shim">
+    <h2>3. 薄板・シムプレート／透明樹脂／複合板</h2>
+
+    <h3>薄板・シムプレート（標準納期：2日目出荷）</h3>
+    <p>対象形状＝切り欠き・通し穴・自由形状穴（角穴・長穴含む）。<b>非対象＝曲げ・成形穴</b>（平板のみ）。板厚・材質ごとに板厚公差が異なります。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>板厚（mm）</th><th>板厚公差</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SPCC(シム用)</td><td>0.1 / 0.2 / 0.3 / 0.5</td><td>±0.03 / ±0.03 / ±0.04 / ±0.06</td></tr>
+        <tr><td class="rowhdr">SUS304(H)(シム用)</td><td>0.05 / 0.1 / 0.2 / 0.3 / 0.5 / 0.8 / 1.0</td><td>±0.005 / ±0.02 / ±0.03 / ±0.035 / ±0.04 / ±0.04 / ±0.05</td></tr>
+        <tr><td class="rowhdr">C2680P/C2801P(シム用)</td><td>0.05 / 0.1 / 0.2 / 0.3 / 0.5 / 1.0</td><td>±0.005 / ±0.02 / ±0.03 / ±0.04 / ±0.05 / ±0.08</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">板厚0.8/1.0mmは他ステンレス材も選べますが、SUS304(H)(シム用)が高精度です。</p>
+
+    <h3>透明樹脂（標準納期：3日目出荷／平板のみ）</h3>
+    <p>対象穴種＝通し穴・タップ穴・皿穴・インサート・長穴・角穴・自由形状穴。<b>非対象＝曲げ</b>。グレードはスタンダード／制電、色は透明／ブラウンスモーク。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>板厚（mm）</th><th>全光線透過率（透明／ブラウンスモーク）</th><th>使用雰囲気温度</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">PET</td><td>3.0 5.0 8.0（スモーク3.0 5.0）</td><td>87% / 28%（制電 77% / 30%）</td><td>−15～55℃</td></tr>
+        <tr><td class="rowhdr">アクリル</td><td>3.0 5.0 8.0 10.0（スモーク3.0 5.0）</td><td>93% / 28%（制電 87% / 25%）</td><td>−40～65℃</td></tr>
+        <tr><td class="rowhdr">ポリカーボネート</td><td>3.0 5.0</td><td>89% / 35%（制電 86% / 32%）</td><td>−40～120℃</td></tr>
+        <tr><td class="rowhdr">塩ビ（ポリ塩化ビニル）</td><td>3.0 5.0</td><td>83% / 27%（制電 77% / 30%）</td><td>−10～60℃</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">透明樹脂の板厚公差：3.0→±0.2、5.0→±0.3、8.0→±0.6、10.0→±0.7。外形寸法は横10～2000・縦10～1000。</p>
+
+    <h3>複合板（アルミ複合板・標準納期：3日目出荷／平板のみ）</h3>
+    <p>芯材＝発泡ポリエチレン樹脂、表面＝焼付塗装、色＝シルバー／つや消しシルバー／黒。板厚3.0mm、外形寸法 横10～2000・縦10～1000。対象穴種＝通し穴・皿穴・長穴・角穴・自由形状穴。<b>非対象＝曲げ</b>。表面材の金属が鋭利になる恐れがあります。</p>
+  </section>
+
+  <!-- ============ 4. 表面処理 ============ -->
+  <section id="surface">
+    <h2>4. 表面処理</h2>
+    <p>各表面処理の特性（〇：良 △：中 ×：低／無）です。膜厚指定はできません。納期種別によりメッキ品の外観に若干の色味差異が生じる場合がありますが、性能は同等です。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>表面処理</th><th>耐食性</th><th>耐摩耗性</th><th>硬度</th><th>見た目/装飾性</th><th>導電性</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">無電解ニッケルメッキ</td><td><span class="yes">〇</span></td><td><span class="yes">〇</span></td><td><span class="yes">〇</span></td><td>△</td><td><span class="yes">〇</span></td></tr>
+        <tr><td class="rowhdr">四三酸化鉄皮膜</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td><span class="yes">〇</span></td><td><span class="yes">〇</span></td></tr>
+        <tr><td class="rowhdr">三価クロメート(白)</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td><span class="yes">〇</span></td><td><span class="yes">〇</span></td></tr>
+        <tr><td class="rowhdr">三価クロメート(黒)</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td><span class="yes">〇</span></td><td><span class="yes">〇</span></td></tr>
+        <tr><td class="rowhdr">アルマイト(白)</td><td><span class="yes">〇</span></td><td>△</td><td>△</td><td><span class="yes">〇</span></td><td><span class="no">×</span></td></tr>
+        <tr><td class="rowhdr">アルマイト(黒)</td><td><span class="yes">〇</span></td><td>△</td><td>△</td><td><span class="yes">〇</span></td><td><span class="no">×</span></td></tr>
+        <tr><td class="rowhdr">アルマイト(つや消し黒)</td><td><span class="yes">〇</span></td><td>△</td><td>△</td><td><span class="yes">〇</span></td><td><span class="no">×</span></td></tr>
+        <tr><td class="rowhdr">アロジン処理相当(三価クロム化成処理)</td><td>△</td><td><span class="no">×</span></td><td><span class="no">×</span></td><td>△</td><td><span class="yes">〇</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>塗装は溶剤塗装・粉体塗装に対応。日本メーカー塗料を使用し、レッド・イエロー・ブラック・ホワイト・グレー系・グリーン系など多数の色（近似マンセル値）から選択できます。詳細色は見積画面で選択します。</p>
+    <h3>メッキ・塗装時の外形上限寸法（別表）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>表面処理</th><th>縦</th><th>横</th><th>高さ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">無電解ニッケルメッキ／四三酸化鉄皮膜／三価クロメート(白)</td><td>1200</td><td>800</td><td>300</td></tr>
+        <tr><td class="rowhdr">アルマイト(白)(黒)</td><td>600</td><td>400</td><td>300</td></tr>
+        <tr><td class="rowhdr">アルマイト(つや消し黒)</td><td>1100</td><td>400</td><td>300</td></tr>
+        <tr><td class="rowhdr">アロジン処理相当</td><td>900</td><td>650</td><td>250</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">メッキ・塗装を選択する場合は<b>吊り穴</b>（ø4～ø5.2mm程度の通し穴）が必要です。穴がない場合は部品の四隅や端面付近にモデリングしてください。長手420mm以上または重量8kg超のモデルは2箇所以上必要です。<br>メッキ鋼板（SECC等）は切断面（板厚面）にメッキがのりません。</div>
+  </section>
+
+  <!-- ============ 5. 熱処理 ============ -->
+  <section id="heat">
+    <h2>5. 熱処理</h2>
+    <div class="info">板金部品サービスは<b>熱処理の対象外</b>です。強度・硬度が必要な場合は切削サービスをご検討ください。</div>
+  </section>
+
+  <!-- ============ 6. 曲げ ============ -->
+  <section id="bend">
+    <h2>6. 曲げ加工・R曲げ</h2>
+
+    <figure class="fig"><img src="img/shm/3445_01.png" alt="曲げ加工部の内R・外R・板厚の関係図" loading="lazy"><figcaption>曲げ部の内R・外R・板厚の関係。外Rは「内R＋板厚」となる。<span class="src">出典：meviy使い方マニュアル「曲げ加工の仕様」</span></figcaption></figure>
+
+    <h3>モデリングの基本ルール（曲げ）</h3>
+    <dl class="spec">
+      <dt>板厚</dt><dd>一定としてモデリングしてください。</dd>
+      <dt>通常曲げの内R</dt><dd>0以上かつ板厚以下。曲げ外Rは「内R＋板厚」。</dd>
+      <dt>R曲げの内R</dt><dd>10以上（対応範囲は板厚により異なる）。曲げ外Rは「内R＋板厚」。</dd>
+    </dl>
+    <p class="dim">曲げ部の板厚が不均一なモデルは自動見積もり不可ですが、自動修正機能で見積可能になる場合があります。</p>
+
+    <h3>R曲げ形状の対象範囲（FR曲げ加工が可能な内R範囲）</h3>
+    <p>R曲げは基本的に<b>FR曲げ（送り曲げ）</b>で製作し、曲げ部には連続した金型痕がつきます。FR曲げが困難な場合は通常曲げ（V曲げ）やR曲げ専用金型での内Rを提案します。</p>
+
+    <figure class="fig"><img src="img/shm/9353_01.png" alt="R曲げ形状の内R対象範囲を示す図" loading="lazy"><figcaption>R曲げ形状の内Rと板厚の関係（FR曲げの対象範囲）。<span class="src">出典：meviy使い方マニュアル「R曲げ形状の対象範囲」</span></figcaption></figure>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚（mm）</th><th>最小内R</th><th>最大内R</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">0.8 / 1.0 / 1.2 / 1.5 / 1.6 / 2.5</td><td>10</td><td>150</td></tr>
+        <tr><td class="rowhdr">2.0</td><td>10 <span class="dim">※鉄材は15</span></td><td>150</td></tr>
+        <tr><td class="rowhdr">2.3</td><td>15</td><td>150</td></tr>
+        <tr><td class="rowhdr">3.0 / 3.2</td><td>30</td><td>150</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>FR曲げが加工できない場合のRサイズ変換テーブル</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>変換前の内R</th><th>変換後の内R（参考値）</th><th>使用される曲げ加工</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">板厚の2倍以内 / R3未満</td><td>板厚（参考値）</td><td>通常曲げ（V曲げ）</td></tr>
+        <tr><td class="rowhdr">R3 ≦ 内R ＜ R6</td><td>R3</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R6 ≦ 内R ＜ R10</td><td>R6</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R10 ≦ 内R ＜ R12.5</td><td>R10</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R12.5 ≦ 内R ＜ R15</td><td>R12.5</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R15 ≦ 内R ＜ R17.5</td><td>R15</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R17.5 ≦ 内R ＜ R20</td><td>R17.5</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R20 ≦ 内R ＜ R22.5</td><td>R20</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R22.5 ≦ 内R ＜ R25</td><td>R22.5</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R25 ≦ 内R ＜ R30</td><td>R25</td><td>専用金型のR曲げ</td></tr>
+        <tr><td class="rowhdr">R30 ≦ 内R</td><td colspan="2">対象外（担当者見積もりをご依頼ください）</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>曲げ加工の条件・干渉</h3>
+    <p>meviy内部で曲げ加工時の金型干渉解析を行い、干渉が見つかった場合は加工不可と判定されます。コの字曲げ・段曲げ(Z曲げ)は次を目安に設計してください。</p>
+
+    <figure class="fig"><img src="img/shm/3467_01.png" alt="コの字曲げの外寸A・C・内寸Bと曲げ高さの関係図" loading="lazy"><figcaption>コの字曲げの寸法条件（外寸A・C、内寸B、最小曲げ高さ）。<span class="src">出典：meviy使い方マニュアル「曲げ加工の条件」</span></figcaption></figure>
+    <dl class="spec">
+      <dt>コの字曲げ</dt><dd>外寸A・C（A≦C）のとき内寸BはA以上。外寸A・Cは最小曲げ高さ以上。</dd>
+      <dt>段曲げ(Z曲げ)</dt><dd>段曲げ高さ＝A寸法＋板厚tの2倍。A寸法は最小曲げ高さ以上。</dd>
+      <dt>突き当て部</dt><dd>曲げ線に平行な突き当て部がないと曲げ位置がずれる恐れ。平行な突き当て部をモデリングしてください。</dd>
+      <dt>角度公差</dt><dd>板厚10mm以下：±1.0°、板厚10mm超：±1.5°。</dd>
+    </dl>
+    <p class="dim">曲げ加工時、曲げ部の両側に板厚の約15%の膨らみ（コブ）が生じます。</p>
+  </section>
+
+  <!-- ============ 7. 穴・タップ ============ -->
+  <section id="hole">
+    <h2>7. 穴・タップ・皿穴・だるま穴</h2>
+
+    <h3>穴加工の種類</h3>
+    <div class="pills">
+      <span class="pill cat">穴種</span>
+      <span class="pill">通し穴</span><span class="pill">長穴</span><span class="pill">角穴</span>
+      <span class="pill">タップ穴</span><span class="pill">バーリングタップ</span><span class="pill">皿穴</span>
+      <span class="pill">だるま穴</span>
+      <span class="pill">ナット取付(圧入/溶接)</span><span class="pill">ソケット取付(溶接)</span>
+    </div>
+    <p class="dim">タップ穴・バーリングタップ・ナット取付（圧入/溶接）のねじ山は並目。ソケット取付のねじ山はテーパ。ナット・ソケットはモデリング不要で穴情報指示欄から選択します。</p>
+
+    <h3>穴認識の仕組み</h3>
+    <p>3D CADデータはアップロード後に中間フォーマットへ変換され、その際タップ穴／皿穴などの穴種情報は失われます。meviyは穴径と形状特徴を検出し、穴情報DBに引き当てて穴種を推測します。検出穴径がタップ穴の呼び径表に引き当たらない場合は通し穴として扱われます（穴種・呼び径は見積設定中に変更可。ただし板厚毎の対応サイズにない呼び径は選択不可）。SOLIDWORKS利用時は元の穴情報を直接引き継ぐ設定が可能です。</p>
+
+    <h3>タップ穴のサイズ選択（代表：鉄系 SPCC/SPHC/SS400/SECC）</h3>
+    <p class="dim">パンチングメタル・複合板・板厚0.8mm以下ではタップ穴を選択できません。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚（mm）</th><th>選択できるタップ穴径</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1.0 / 1.2</td><td>M2 M2.5 M3</td></tr>
+        <tr><td class="rowhdr">1.6</td><td>M2 M2.5 M3 M4 M5</td></tr>
+        <tr><td class="rowhdr">2.0 / 2.3</td><td>M2 M2.5 M3 M4 M5 M6</td></tr>
+        <tr><td class="rowhdr">3.2</td><td>M2(※) M2.5 M3 M4 M5 M6 M8</td></tr>
+        <tr><td class="rowhdr">4.5</td><td>M3 M4 M5 M6 M8 M10</td></tr>
+        <tr><td class="rowhdr">6.0</td><td>M4 M5 M6 M8 M10</td></tr>
+        <tr><td class="rowhdr">9.0</td><td>M5(※SS400素地のみ) M6 M8 M10</td></tr>
+        <tr><td class="rowhdr">10.0 / 12.0 / 16.0</td><td>M6 M8 M10 M12 M14 M16</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">ステンレス系・アルミ・銅・透明樹脂も板厚ごとに選択範囲が定義されています。例：SUS304(2B) 1.0mm→M2/M2.5/M3、3.0mm→M3～M8、12.0mm→M6～M16。透明樹脂は3.0mm→M3～M5、10.0mm→M3～M10。</p>
+
+    <h3>バーリングタップ</h3>
+    <p>円筒フランジ形状を検出するとバーリングタップとして識別されます。内径dは「タップ穴の認識」と同じルール、フランジ高さhと厚みtは板厚以下でモデリングします。パンチングメタル・シムプレート・透明樹脂・複合板では選択不可。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質</th><th>板厚（mm）</th><th>バーリングタップ穴径</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SPCC/SPHC/SECC</td><td>0.8</td><td>M3 M4</td></tr>
+        <tr><td class="rowhdr">SPCC/SPHC/SECC</td><td>1.0 / 1.2 / 1.6</td><td>M2(※) M2.5(※) M3 M4 M5</td></tr>
+        <tr><td class="rowhdr">SUS各種 / A5052</td><td>0.8</td><td>M3 M4</td></tr>
+        <tr><td class="rowhdr">SUS各種 / A5052</td><td>1.0 / 1.2 / 1.5 / 1.6</td><td>M3 M4 M5</td></tr>
+        <tr><td class="rowhdr">銅 C1020/C1100/C2801P</td><td>1.0 / 1.5</td><td>M3 M4 M5</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">※M2・M2.5はSPCC(溶融亜鉛メッキ)・SECCに限る。板厚1.6mmのSUS/A5052枠はA5052に限る。</p>
+
+    <h3>皿穴のモデリングとサイズ</h3>
+    <dl class="spec">
+      <dt>円錐角度</dt><dd>90°でモデリング。</dd>
+      <dt>穴径比 D/d</dt><dd>d≦4.0mmのとき1.4超、d&gt;4.0mmのとき1.7超。</dd>
+    </dl>
+    <figure class="fig"><img src="img/shm/fcpl_item_guideline_30.png" alt="皿穴の円錐角度90度と穴径D・下穴径dの関係図" loading="lazy"><figcaption>皿穴のモデリング（円錐角度90°、皿径Dと下穴径dの比）。<span class="src">出典：meviy使い方マニュアル「皿穴のモデリングと選択できるサイズ」</span></figcaption></figure>
+    <p class="dim">皿穴は下穴径から呼び径を判定（例：M3＝3.2≦d≦4.0、M5＝5.3≦d≦6.5、M8＝8.4≦d≦10.0、M16＝17.0≦d≦18.5）。パンチングメタル・シムプレートでは選択不可。鉄系では板厚2.0mm→M3、4.5mm→M3～M6、10～16mm→M5～M16が選択できます。</p>
+
+    <h3>だるま穴のモデリングルール</h3>
+    <p>だるま穴形状を検出すると認識されます。条件式をすべて満たすようモデリングしてください：<b>d1 ≧ 4.5、d2 ≧ 2×d1 + 2、ℓ &gt; 0</b>。</p>
+    <figure class="fig"><img src="img/shm/fcpl_item_guideline_50.png" alt="だるま穴のd1・d2・ℓの寸法定義図" loading="lazy"><figcaption>だるま穴のモデリング寸法（d1・d2・ℓ）の定義。<span class="src">出典：meviy使い方マニュアル「だるま穴のモデリングルール」</span></figcaption></figure>
+  </section>
+
+  <!-- ============ 8. ナット・ソケット・インサート ============ -->
+  <section id="nut">
+    <h2>8. ナット・ソケット・ねじインサート</h2>
+
+    <h3>ナット取付</h3>
+    <p>取付方法は圧入・溶接（スポット）・溶接（アーク）。同一モデル上で複数方法の混在は不可。溶接(アーク)は個数によらず担当者見積もり。<b>SUS316・SUS304(2B)片面保護シート付・銅・パンチングメタル・シムプレート・透明樹脂・複合板はナット取付不可。</b></p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>項目</th><th>圧入ナット</th><th>溶接（スポット）ナット</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">下穴径(d)上限</td><td>M3:5.5 / M4:7.0 / M5:8.0 / M6:10.0 / M8:13.0</td><td>M4:11.0 / M5:11.0 / M6:13.0 / M8:15.0 / M10:17.0 / M12:19.0</td></tr>
+        <tr><td class="rowhdr">自動見積最大個数</td><td>12個</td><td>12個</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">サイズ選択は材質・板厚ごと。例：鉄系(SPCC/SPHC/SECC) 圧入は板厚0.8→M3/M4、1.0～1.6→M3～M6、2.0～3.2→M3～M8。スポット溶接は板厚1.6mm以上でM4～M12。</p>
+
+    <h3>ソケット取付（板金では担当者見積もり）</h3>
+    <p>取付はアーク溶接。<b>SUS316・SUS304(2B)片面保護シート付・アルミ・銅・パンチングメタル・シムプレート・透明樹脂・複合板はソケット取付不可。</b>自動見積最大個数は4個。対応材質はSPCC/SPHC/SECC・SUS304/430、板厚1.0～6.0mm、サイズ6A(Rc1/8)～50A(Rc2)。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>ソケットサイズ</th><th>下穴径(d)上限 鉄材</th><th>下穴径(d)上限 ステンレス材</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">6A(Rc1/8)</td><td>19.0</td><td>15.0</td></tr>
+        <tr><td class="rowhdr">8A(Rc1/4)</td><td>22.0</td><td>19.0</td></tr>
+        <tr><td class="rowhdr">10A(Rc3/8)</td><td>28.0</td><td>22.0</td></tr>
+        <tr><td class="rowhdr">15A(Rc1/2)</td><td>32.0</td><td>27.0</td></tr>
+        <tr><td class="rowhdr">20A(Rc3/4)</td><td>38.0</td><td>33.0</td></tr>
+        <tr><td class="rowhdr">25A(Rc1)</td><td>46.0</td><td>40.0</td></tr>
+        <tr><td class="rowhdr">32A(Rc1 1/4)</td><td>58.0</td><td>49.0</td></tr>
+        <tr><td class="rowhdr">40A(Rc1 1/2)</td><td>63.0</td><td>55.0</td></tr>
+        <tr><td class="rowhdr">50A(Rc2)</td><td>76.0</td><td>68.0</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>ねじインサート（透明樹脂のみ・材質SUS304）</h3>
+    <p>穴情報指示を変更してねじインサートを指示できます（モデリング方法はタップ同様）。呼び長さ(D)は呼び径ごとに1D／1.5D／2Dの3種。自動見積可能な最大数量は50個。短/標準納期は＋2日（21～50個は＋3日）、長納期の納期加算はありません。対応板厚3.0～10.0mm、呼び径M3～M8（板厚により異なる）。</p>
+  </section>
+
+  <!-- ============ 9. 加工限界 ============ -->
+  <section id="limit">
+    <h2>9. 加工限界・モデリング基本ルール</h2>
+    <p>各規格部位には加工限界値・寸法範囲が定められています。規格範囲内のモデルを作成してください（表面処理・形状・加工条件により値が異なる場合があります）。代表値を示します（鉄系 SPCC/SPHC/SUS304等）。</p>
+
+    <h3>穴と端面・穴間の最小距離（限界値c、mm）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚</th><th>0.8</th><th>1.0</th><th>1.2</th><th>1.6</th><th>2.0</th><th>2.3</th><th>3.2</th><th>6.0</th><th>9.0</th><th>12.0</th><th>16.0</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">限界値c</td><td>0.5</td><td>0.5</td><td>0.6</td><td>0.8</td><td>1.0</td><td>1.1</td><td>1.5</td><td>3.0</td><td>4.0</td><td>6.0</td><td>8.0</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">通し穴の最小径＝おおむね板厚と同等以上（例：板厚1.0→1.0、板厚6.0→6.0）。タップ穴・皿穴は最外径からの距離で最小距離を計算します。</p>
+
+    <h3>最小曲げ高さ（限界値h、mm／鉄系 SPCC/SPHC/SS400・通常曲げ）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚</th><th>0.8</th><th>1.0</th><th>1.2</th><th>1.6</th><th>2.0</th><th>2.3</th><th>3.2</th><th>6.0</th><th>9.0</th><th>16.0</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">限界値h</td><td>4.2</td><td>4.3</td><td>5.5</td><td>6.8</td><td>8.2</td><td>9.4</td><td>13.3</td><td>23.5</td><td>33.5</td><td>88.5</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">R曲げ形状はより低い限界値（例：SPCC 板厚1.0→2.3、3.2→6.9）。段曲げ・鋭角曲げにも別途限界値・最小角度（一般にΘ≧45°、厚板はΘ≧88°等）があります。</p>
+
+    <h3>切り欠きと曲げの最小距離（目安）</h3>
+    <dl class="spec">
+      <dt>限界値h</dt><dd>0.8≦t≦2.0のとき5t、2.3≦t≦9.0のとき4t。</dd>
+      <dt>保証値b / 限界値b</dt><dd>0.8≦t≦2.0のとき保証2t・限界t、2.3≦t≦9.0のとき限界2t。</dd>
+    </dl>
+  </section>
+
+  <!-- ============ 10. 公差 ============ -->
+  <section id="tolerance">
+    <h2>10. 公差・精度</h2>
+    <p>普通許容差はJIS B 0408 金属プレス加工品普通許容差に準拠（板厚6.0mm以下：B級、板厚6.0mm超：C級。R曲げの「曲げ加工部」は板厚によらずC級）。</p>
+
+    <h3>許容寸法公差（規格値）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>規格部位</th><th>基準寸法の区分</th><th>通常曲げ 板厚6.0以下</th><th>通常曲げ 板厚6.0超</th><th>R曲げ 板厚3.2以下</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr" rowspan="6">曲げ無し部</td><td>6以下</td><td>±0.1</td><td>±0.3</td><td>±0.1</td></tr>
+        <tr><td>6超～30</td><td>±0.2</td><td>±0.5</td><td>±0.2</td></tr>
+        <tr><td>30超～120</td><td>±0.3</td><td>±0.8</td><td>±0.3</td></tr>
+        <tr><td>120超～400</td><td>±0.5</td><td>±1.2</td><td>±0.5</td></tr>
+        <tr><td>400超～1,000</td><td>±0.8</td><td>±2.0</td><td>±0.8</td></tr>
+        <tr><td>1,000超～2,000</td><td>±1.2</td><td>±3.0</td><td>±1.2</td></tr>
+        <tr><td class="rowhdr" rowspan="6">曲げ加工部</td><td>6以下</td><td>±0.3</td><td>±0.5</td><td>±0.5</td></tr>
+        <tr><td>6超～30</td><td>±0.5</td><td>±1.0</td><td>±1.0</td></tr>
+        <tr><td>30超～120</td><td>±0.8</td><td>±1.5</td><td>±1.5</td></tr>
+        <tr><td>120超～400</td><td>±1.2</td><td>±2.5</td><td>±2.5</td></tr>
+        <tr><td>400超～1,000</td><td>±2.0</td><td>±4.0</td><td>±4.0</td></tr>
+        <tr><td>1,000超～2,000</td><td>±3.0</td><td>±6.0</td><td>±6.0</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">許容寸法公差は同じ面の穴間や、曲げで隣接した端面・垂直面との寸法に限り適用。複数の曲げ加工部をまたぐ寸法には適用されません。塗装指定時は生地状態での規格値です。</p>
+
+    <h3>指定可能な寸法公差（自動見積もり）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>寸法種類</th><th>公差範囲</th><th>注意</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">通し穴径</td><td>両側公差 ±0.2mm以上</td><td>タップ・バーリング・皿穴は対象外</td></tr>
+        <tr><td class="rowhdr">通し穴と通し穴の距離</td><td>両側公差 ±0.2mm以上</td><td>タップ・バーリング・皿穴は対象外</td></tr>
+        <tr><td class="rowhdr">板端面と端面の距離</td><td>両側公差 ±0.2mm以上</td><td>曲げがある場合・外形寸法は対象外</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">寸法公差の対象材質・板厚：SPCC/SPHC（0.8～4.5）、SUS304(2B)（0.8～6.0）、SUS430(2B)（0.8～3.0）。板厚公差は±10%目安。</p>
+  </section>
+
+  <!-- ============ 11. 付帯サービス ============ -->
+  <section id="extra">
+    <h2>11. 付帯サービス（面取り・洗浄・刻印・品質）</h2>
+
+    <h3>面取り・バリ取り</h3>
+    <p>両面バリ取り機でバリ・カエリを除去（糸面取り・C/R面取り）。抜き加工時の0.1mm超のバリ・カエリは除去します（糸面取り・C面取りにはなりません）。体裁面に細かな傷が入る恐れがあります。鉄素地・SUS素地・A5052は糸面取り○。塗装品・三価クロメート(黒)・SECCはC/R面取り不可、A5052(素地以外)もC/R面取り不可。銅・真鍮は両面に研磨痕が残ります。</p>
+
+    <h3>クリーン洗浄</h3>
+    <p>脱脂洗浄・精密洗浄・電解研磨＋精密洗浄の3方式。板厚による制限はありません。SPCC/SPHC素地・銅素地・シム用素地などは対象外。洗浄により防錆油分も除去されるため未洗浄品より錆びやすくなる場合があります。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>洗浄方法</th><th>サイズ上限（1辺）</th><th>重量上限</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">脱脂洗浄</td><td>最大 1,500mm</td><td>40kg</td></tr>
+        <tr><td class="rowhdr">精密洗浄</td><td>最大 1,500mm</td><td>60kg</td></tr>
+        <tr><td class="rowhdr">電解研磨＋精密洗浄</td><td>最大 1,500mm</td><td>60kg</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">精密洗浄はソケット取付との併用が対象外。電解研磨＋精密洗浄の一部材質は圧入ナット取付との併用が対象外。</p>
+
+    <h3>刻印（体裁面のみ）</h3>
+    <dl class="spec">
+      <dt>文字</dt><dd>半角英数字と一部記号（+-.#$%&amp;()=*:?/_~）を自由入力。改行・スペース可。フォント・文字間隔・行間の指定は不可。</dd>
+      <dt>文字サイズ</dt><dd>3.0～30.0mm（大文字の高さ基準・目安値）。3.0～5.0mmは材質・文字により潰れの恐れ。</dd>
+      <dt>角度</dt><dd>0～315°の45°ピッチで指示可。</dd>
+    </dl>
+    <p class="dim">刻印対象板厚の例：SPCC/SPHC 0.8～6.0、SS400 9.0/10.0/12.0/16.0、SUS304(2B) 0.8～6.0、A5052 0.8～6.0。板厚公差±10%目安。</p>
+
+    <h3>品質管理・外観</h3>
+    <p>体裁面は爪がかかる傷無きことを保証範囲とします（体裁面でない面は加工上の傷が入る場合あり）。曲げ部の両側に板厚の約15%のコブ、曲げ部に金型痕、厚板(6.0mm超)の切断面はレーザー焼け跡が目立つ恐れ、穴内部の凹凸・裏面の穴形状崩れが生じる場合があります。検査は外観検査（目視）・寸法確認（デジタルノギス・角度測定器等）を各工程・出荷前に実施します。</p>
+  </section>
+
+  <!-- ============ 12. 納期 ============ -->
+  <section id="delivery">
+    <h2>12. 出荷日・納期・割引</h2>
+    <p>締め時間内の注文で翌営業日から1日目をカウント（土日祝非カウント）。</p>
+
+    <h3>納期選択サービス</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>選択肢</th><th>出荷日</th><th>特長</th><th>型番末尾</th><th>受注締め時間</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">短納期</td><td>1日目～</td><td>最短1日目出荷（品質：標準と同等）</td><td>-E</td><td>15:00</td></tr>
+        <tr><td class="rowhdr">標準納期</td><td>3日目～</td><td>標準でも最短3日目出荷</td><td>—</td><td>20:00</td></tr>
+        <tr><td class="rowhdr">長納期</td><td>20日目～</td><td>品質変わらず<b>価格30%OFF</b>（品質：同等）</td><td>-L</td><td>—</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">デフォルトは標準納期。短納期の2日目～出荷品の締め時間は20:00。材質・表面処理により標準/短/長の出荷日は異なります（例：SPCC/SPHC/SS400素地＝標準3日目/短納期1日目/長納期20日目、粉体塗装＝標準5日目/短納期4日目）。</p>
+
+    <h3>数量スライド割引（標準仕様・透明樹脂/複合板/シムプレートを除く）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>数量</th><th>割引率</th><th>出荷日</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1</td><td>—</td><td>3日目～</td></tr>
+        <tr><td class="rowhdr">2～4</td><td>10%</td><td>3日目～</td></tr>
+        <tr><td class="rowhdr">5～9</td><td>14%</td><td>3日目～</td></tr>
+        <tr><td class="rowhdr">10～20</td><td>18%</td><td>3日目～</td></tr>
+        <tr><td class="rowhdr">21～100</td><td>最大40%</td><td>6日目～</td></tr>
+      </tbody>
+    </table></div>
+    <p class="dim">101個以上はグローバルでの大量生産でさらに安くなる場合があります。</p>
+
+    <h3>追加工による出荷日加算</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>追加工</th><th>標準納期</th><th>短納期</th><th>長納期</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">クリーン洗浄（脱脂/精密/電解研磨＋精密）</td><td>＋4日</td><td>＋4日</td><td>＋4日</td></tr>
+        <tr><td class="rowhdr">刻印</td><td>＋1日</td><td>非対応</td><td>＋0日</td></tr>
+        <tr><td class="rowhdr">ナット取付</td><td>＋1日～2日</td><td>非対応</td><td>非対応</td></tr>
+        <tr><td class="rowhdr">透明樹脂タップ</td><td>＋2日</td><td>非対応</td><td>＋0日</td></tr>
+        <tr><td class="rowhdr">透明樹脂ねじインサート</td><td>＋2日</td><td>＋2日</td><td>＋0日</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">R曲げ形状は通常曲げ品に1～2日加算。外形寸法1200mm超の素地品・メッキ鋼板は標準＋1～7日・短納期＋2～4日（長納期は加算なし）、塗装品は標準/短/長すべて＋3～7日。一部塗装色は長納期不可。</div>
+  </section>
+
+  <!-- ============ 13. エラー ============ -->
+  <section id="error">
+    <h2>13. よくある見積もりエラー</h2>
+    <p>アップロード時に「お見積もりエラー」が出る代表事例と解消方法です。3Dビューワーの注意事項欄でエラー内容・該当箇所を確認できます。</p>
+    <figure class="fig"><img src="img/shm/13360_01_A.png" alt="見積もりエラー時に3Dビューワーで該当箇所が表示される様子" loading="lazy"><figcaption>見積もりエラーの該当箇所を3Dビューワー上で確認する例。<span class="src">出典：meviy使い方マニュアル「板金部品のお見積もりエラー事例集」</span></figcaption></figure>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>事例</th><th>原因</th><th>解消方法</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1. ファイル読込失敗</td><td>非対応の3D CADフォーマット/拡張子</td><td>対応フォーマットを確認し修正</td></tr>
+        <tr><td class="rowhdr">2. 対象外形状</td><td>自動見積対象外の形状</td><td>見積可能形状を確認し設計変更</td></tr>
+        <tr><td class="rowhdr">3. 対応板厚なし</td><td>対応板厚の取り扱いがない</td><td>対応する板厚に修正</td></tr>
+        <tr><td class="rowhdr">4. 板厚不均一</td><td>板厚が一定でない／R設定がルール外</td><td>モデリング基本ルールに従い修正</td></tr>
+        <tr><td class="rowhdr">5. フィーチャー間距離</td><td>穴-端面/穴間距離が限界値未満</td><td>最小距離に従い修正（測定機能活用）</td></tr>
+        <tr><td class="rowhdr">6. 曲げ-タップ間距離</td><td>曲げ-穴間距離が限界値未満</td><td>距離確保 or 開口部（逃げ穴）作成</td></tr>
+        <tr><td class="rowhdr">7. 壁高さ過小</td><td>曲げ高さが限界値未満</td><td>十分な曲げ高さを確保</td></tr>
+        <tr><td class="rowhdr">8. チャンネル部干渉</td><td>曲げ加工時に金型へ干渉</td><td>干渉を避けるよう形状修正</td></tr>
+        <tr><td class="rowhdr">9. 不明穴</td><td>認識対象外の穴形状</td><td>対象穴形状に変更し再アップロード</td></tr>
+        <tr><td class="rowhdr">10. 形状認識失敗</td><td>3D CADデータ品質の問題で形状変形</td><td>形状確認・修正 → 別ファイル形式（STEP/Parasolid）で再試行</td></tr>
+      </tbody>
+    </table></div>
+    <div class="info">解決しない場合は担当者見積もりをご利用ください。サポート：株式会社ミスミ meviyサポート TEL 0120-343-626（平日9:00～18:00）。</div>
+  </section>
+</main></div></div>
+
+<footer>
+  <p>← <a href="index.html">ホーム</a> ｜ <a href="basics.html">横断の基本情報</a></p>
+  <p>出典：<a href="https://jp.meviy.misumi-ec.com/help/ja/technical_info/shm/" target="_blank" rel="noopener">meviy使い方マニュアル</a>（本サイトは技術情報を設計者向けに再構成した非公式版。最新・正式仕様は公式で確認）</p>
+</footer>
+
+<script src="scrollspy.js"></script>
+</body>
+</html>

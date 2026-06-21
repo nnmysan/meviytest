@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>板金溶接（SWD）｜meviy 仕様ガイド</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav"><div class="inner">
+  <span class="brand"><b>meviy</b> 仕様ガイド</span>
+  <a class="link" href="index.html">ホーム</a>
+  <a class="link" href="basics.html">基本情報（横断）</a>
+  <a class="link" href="sheet-metal.html">板金</a>
+  <a class="link active" href="sheet-metal-welding.html">板金溶接</a>
+  <a class="link" href="milling.html">切削（角物）</a>
+  <a class="link" href="turning.html">切削（丸物）</a>
+</div></nav>
+
+<div class="wrap"><div class="docpage">
+<aside class="sidebar"><div class="side-inner">
+  <div class="side-title">板金溶接</div>
+  <nav class="side-nav">
+    <a href="#overview">概要</a>
+    <a href="#material">対応材質・板厚</a>
+    <a href="#surface">表面処理・塗装色</a>
+    <a href="#size">見積可能サイズ</a>
+    <a href="#shape">対象形状／対象外</a>
+    <a href="#multi-thickness">板厚違い</a>
+    <a href="#heat">熱処理</a>
+    <a href="#modeling">モデリングルール</a>
+    <a href="#recognition">溶接箇所の判定</a>
+    <a href="#weld-info">溶接情報の指示</a>
+    <a href="#spot">スポット溶接</a>
+    <a href="#limit">加工限界</a>
+    <a href="#standard">溶接・仕上げ規格</a>
+    <a href="#tolerance">公差・反り歪み</a>
+    <a href="#leak">漏れ試験</a>
+    <a href="#service">付帯サービス</a>
+    <a href="#ship">出荷日・納期</a>
+  </nav>
+</div></aside>
+<main class="doc-main">
+  <div class="eyebrow">SWD ／ Sheet Metal Welding</div>
+  <h1>板金溶接</h1>
+  <p class="lead">複数の板金パーツを溶接で接合した構造部品を、3Dデータから自動見積もり。
+     アーク／レーザー／スポット溶接に対応し、リブ・ボックス・アングルなどの溶接構造を最短6日目で出荷します。
+     コストダウン向けの長納期サービス（30%OFF）も選べます。</p>
+
+  <section id="overview">
+    <h2>概要</h2>
+    <p>meviy板金溶接サービスは、複数の板金パーツを溶接接合した構造部品を3Dデータから自動見積もりします。
+       3Dデータに溶接ビードを描く必要はなく、自動で認識された溶接箇所に対して3Dビューワー上で溶接情報（種類・方法・方向・仕上げ）を設定します。
+       見積完了で <b>MVSWD</b> から始まる型番が発行されます。</p>
+    <div class="pills">
+      <span class="pill cat">溶接種類</span>
+      <span class="pill">おまかせ（アーク/レーザー）</span>
+      <span class="pill">アーク溶接</span>
+      <span class="pill">レーザー溶接</span>
+      <span class="pill">スポット溶接</span>
+    </div>
+    <div class="info">構成パーツそれぞれが<b>板金モデルとして成立</b>している必要があります。
+      各パーツは板金部品の「モデリングの基本ルール」に従ってください。</div>
+  </section>
+
+  <section id="material">
+    <h2>対応材質・板厚</h2>
+    <p>鉄系・ステンレス・アルミの3系統＋パンチングメタル材に対応。樹脂・切削品は非対応。
+       〇＝自動見積可能、△＝自動見積不可だが担当者見積は可能。</p>
+    <div class="pills">
+      <span class="pill cat">鉄系</span><span class="pill">SPCC/SPHC</span><span class="pill">SS400</span><span class="pill">SECC</span>
+      <span class="pill cat">ステンレス</span><span class="pill">SUS304</span><span class="pill">SUS430</span>
+      <span class="pill cat">アルミ</span><span class="pill">A5052</span>
+      <span class="pill cat">パンチング</span><span class="pill">SUS304-BA</span>
+    </div>
+
+    <h3>鉄系</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質／表面処理</th><th>板厚 [mm]</th><th>通常溶接<br>（アーク/レーザー）</th><th>スポット溶接</th><th>溶接仕上げ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SPCC/SPHC（無処理）</td><td>1.0 1.2 1.6 2.0 2.3 3.2 4.5 6.0</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>焼け取り／グラインダー（〜3.2mm）</td></tr>
+        <tr><td class="rowhdr">SPCC/SPHC＋塗装</td><td>同上</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>グラインダーのみ</td></tr>
+        <tr><td class="rowhdr">SPCC/SPHC＋無電解Ni／四三酸化鉄／三価クロメート(白)</td><td>同上</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>焼け取り／グラインダー</td></tr>
+        <tr><td class="rowhdr">SPCC/SPHC＋三価クロメート(黒)</td><td>同上</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>グラインダーのみ</td></tr>
+        <tr><td class="rowhdr">SS400（無処理）</td><td>9.0 10.0 12.0 16.0</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>焼け取り／グラインダー</td></tr>
+        <tr><td class="rowhdr">SS400＋塗装</td><td>9.0 10.0 12.0</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>グラインダーのみ</td></tr>
+        <tr><td class="rowhdr">SS400＋無電解Ni／四三酸化鉄／三価クロメート(白)</td><td>9.0</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>焼け取り／グラインダー</td></tr>
+        <tr><td class="rowhdr">SECC（電気亜鉛メッキ鋼板）</td><td>1.0 1.2 1.6 2.0 2.3 3.2</td><td><span class="yes">○</span></td><td><span class="no">×</span></td><td>焼け取りのみ</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">板厚公差は<b>±10%</b>が目安。SECCの電気亜鉛メッキは前処理剤のため、加工面にはメッキがのりません。</div>
+
+    <h3>ステンレス</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質／仕上げ</th><th>板厚 [mm]</th><th>通常溶接</th><th>スポット溶接</th><th>溶接仕上げ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SUS304（No.1）</td><td>9.0 10.0 12.0</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>焼け取りのみ</td></tr>
+        <tr><td class="rowhdr">SUS304（2B）</td><td>1.0 1.2 1.5 2.0 2.5 3.0 4.0 5.0 6.0</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>焼け取り／グラインダー（〜3.0mm）</td></tr>
+        <tr><td class="rowhdr">SUS304（片面#400研磨）</td><td>1.0 1.2 1.5 2.0 3.0</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>グラインダーは<span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">SUS304（片面ヘアライン）</td><td>1.0 1.2 1.5 2.0 3.0</td><td><span class="dim">△</span></td><td><span class="dim">△</span></td><td><span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">SUS430（2B）</td><td>1.0 1.2 1.5 2.0 3.0</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>焼け取り／グラインダー</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">SUS304の片面#400研磨・片面ヘアラインは、溶接部とその周辺を除き<b>保護シート（片面）</b>を貼付した状態で納品。体裁面側が研磨面となります。</div>
+
+    <h3>アルミニウム</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質／表面処理</th><th>板厚 [mm]</th><th>通常溶接</th><th>スポット溶接</th><th>溶接仕上げ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">A5052（無処理）</td><td>1.0 1.2 1.5 1.6 2.0 2.5 3.0 4.0 5.0 6.0</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>焼け取り／グラインダー（〜2.5mm）</td></tr>
+        <tr><td class="rowhdr">A5052＋アルマイト（白／黒）</td><td>同上</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>グラインダーは<span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">A5052＋アルマイト（つや消し黒）</td><td>同上</td><td><span class="yes">○</span></td><td><span class="yes">○</span></td><td>切り起こし形状は非対応</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>パンチングメタル材（SUS304-BA、丸孔60°千鳥）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>孔径×孔ピッチ</th><th>開口率</th><th>板厚 [mm]</th><th>通常溶接</th><th>スポット溶接</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">ø2×3p</td><td>40.3%</td><td>1.0</td><td><span class="dim">△</span></td><td><span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">ø3×5p</td><td>32.7%</td><td>1.0 1.5</td><td><span class="dim">△</span></td><td><span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">ø5×8p</td><td>35.4%</td><td>1.0 1.5</td><td><span class="dim">△</span></td><td><span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">ø8×12p</td><td>40.2%</td><td>1.5</td><td><span class="dim">△</span></td><td><span class="dim">△</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="info">板金部品と板金溶接品で表面処理の仕上がりに差が生じることがあります。ご了承いただけない場合は担当者見積でご依頼ください。</div>
+  </section>
+
+  <section id="surface">
+    <h2>表面処理・塗装色</h2>
+    <p>鉄は溶接焼けで<b>錆びやすい</b>ため、防錆を目的に塗装・メッキを推奨します。
+       表面処理は材質ごとに対応が異なります（上表参照）。</p>
+    <div class="pills">
+      <span class="pill cat">メッキ</span><span class="pill">無電解ニッケル</span><span class="pill">四三酸化鉄皮膜</span>
+      <span class="pill">三価クロメート(白/黒)</span><span class="pill">電気亜鉛(SECC)</span>
+      <span class="pill cat">塗装</span><span class="pill">粉体塗装7色</span><span class="pill">溶剤塗装7色</span>
+      <span class="pill cat">アルマイト</span><span class="pill">白/黒/つや消し黒</span>
+    </div>
+    <h3>塗装色</h3>
+    <p>粉体塗装7色・溶剤塗装7色の<b>計14色</b>を展開。近似マンセル値・塗料・ツヤは板金部品と同等です。</p>
+    <dl class="spec">
+      <dt>粉体塗装</dt><dd>ブラック／ホワイト／イエロー／グレー／クリームグレー／オフホワイト／Tクリーム</dd>
+      <dt>溶剤塗装</dt><dd>レッド／Nオレンジ／ライトブラウン／スモークブルー／モスグリーン／ライムグリーン／ダークグリーン</dd>
+      <dt>仕上げ制約</dt><dd>塗装品質担保のため、溶接仕上げは<b>グラインダー仕上げのみ</b>利用可。</dd>
+    </dl>
+    <div class="note">一部の塗装品（粉体塗装2色 5Y7.2/1.4・5P9/1、溶剤塗装7色）の<b>板厚6mm以上は非対応</b>です。</div>
+  </section>
+
+  <section id="size">
+    <h2>見積可能サイズ</h2>
+    <p>自動見積可能な製品サイズ範囲は以下の通り。範囲外は担当者見積でご依頼いただけます。
+       構成パーツ単位で外形寸法（長手方向）の上限があります。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質系統</th><th>製品外形寸法<br>（縦＋横＋高さの合計）</th><th>構成パーツ最大辺</th><th>製品重量</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">鉄系（SPCC/SPHC・SS400・SECC等）</td><td>30〜2000mm ※1</td><td>〜1200mm</td><td>〜40kg</td></tr>
+        <tr><td class="rowhdr">ステンレス系（SUS304・SUS430）</td><td>30〜2000mm</td><td>〜1200mm</td><td>〜40kg</td></tr>
+        <tr><td class="rowhdr">アルミ（A5052）</td><td>30〜2000mm ※1</td><td>〜1200mm</td><td>〜40kg</td></tr>
+      </tbody>
+    </table></div>
+    <p>※1 表面処理・材質によって縦・横・高さの上限が異なります（別表）。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>表面処理</th><th>縦 [mm]</th><th>横 [mm]</th><th>高さ [mm]</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">無電解Ni／四三酸化鉄／三価クロメート(白)</td><td>1200</td><td>800</td><td>300</td></tr>
+        <tr><td class="rowhdr">三価クロメート(黒)</td><td>1150</td><td>900</td><td>120</td></tr>
+        <tr><td class="rowhdr">A5052（無処理）</td><td>1200</td><td>920</td><td>920</td></tr>
+        <tr><td class="rowhdr">アルマイト（白／黒）</td><td>600</td><td>400</td><td>400</td></tr>
+        <tr><td class="rowhdr">アルマイト（つや消し黒）</td><td>1100</td><td>800</td><td>400</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="shape">
+    <h2>対象形状／対象外</h2>
+    <h3>見積もり対象形状</h3>
+    <figure class="fig"><img src="img/swd/15133_01.png" alt="リブ・ボックス・アングルなど溶接対象となる構造形状の例" loading="lazy"><figcaption>溶接対象となる代表的な構造形状（リブ・ボックス・アングル等）。<span class="src">出典：meviy使い方マニュアル「見積もり対象形状」</span></figcaption></figure>
+    <div class="pills">
+      <span class="pill">リブ形状</span><span class="pill">ボックス・カバー形状</span>
+      <span class="pill">アングル形状</span><span class="pill">曲げ加工干渉を含む構成パーツ</span>
+      <span class="pill">2種類以上の板厚パーツ</span>
+    </div>
+    <p>溶接対象となる形状要素：板同士のL字接合、板同士のT字接合、板の重ね合わせ
+       （重なり面の外周を溶接。曲げ部がある場合は除く）。</p>
+
+    <h3>サービス対象外形状</h3>
+    <figure class="fig"><img src="img/swd/15162_01.png" alt="ダクト・架台など板金溶接サービス対象外となる形状の例" loading="lazy"><figcaption>サービス対象外となる形状の例（ダクト・形鋼を含む架台など）。<span class="src">出典：meviy使い方マニュアル「サービス対象外形状」</span></figcaption></figure>
+    <div class="note">以下は板金溶接品として<b>見積不可</b>です。
+      ① ダクト・ホッパー　② 鋼管や形鋼を含む架台・イケール　③ ナット等の板金以外のモデルを含む　④ 切削品等の板金以外の形状を含む。
+      また「モデリングの基本ルール」を満たさない3Dモデルも対象外です。</div>
+
+    <h3>加工が難しい形状（代表例）</h3>
+    <p>設備の加工限界により製作できない場合があり、その際はmeviyサポートより連絡します。</p>
+    <ul>
+      <li>幅狭で奥行があり溶接器具が届かない</li>
+      <li>密閉された箱形状</li>
+      <li>溶接部のスリットが開きすぎ</li>
+      <li>曲げ線部に溶接が重なっている（スポット溶接を推奨）</li>
+    </ul>
+  </section>
+
+  <section id="multi-thickness">
+    <h2>板厚違いの見積可能条件</h2>
+    <p>板厚が2種類以上の部品も見積もり可能。板厚ごとにソリッドを分けてモデリングしてください。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚の種類数</th><th>判定</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">3種類以内</td><td><span class="yes">○</span> 自動見積可能</td></tr>
+        <tr><td class="rowhdr">5種類以内</td><td><span class="dim">△</span> 担当者見積可能</td></tr>
+        <tr><td class="rowhdr">6種類以上</td><td><span class="no">×</span> 見積不可</td></tr>
+      </tbody>
+    </table></div>
+    <p>材質グループを跨いだ異材質の組合せは非対応。自動見積可能な板厚の最小・最大組合せ範囲（代表例）：</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質グループ</th><th colspan="2">アーク/レーザー（最小〜最大）</th><th colspan="2">スポット（最小〜最大）</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SPCC/SPHC・SS400</td><td>1.0〜2.0</td><td>3.2〜9.0 ／ 9.0〜16.0</td><td>1.0〜3.2</td><td>3.2〜3.2</td></tr>
+        <tr><td class="rowhdr">SECC</td><td>1.0〜2.0</td><td>1.6〜3.2</td><td>1.0〜3.2</td><td>3.2〜3.2</td></tr>
+        <tr><td class="rowhdr">SUS304(2B)・SUS304(No.1)</td><td>1.0〜2.0</td><td>3.0〜6.0 ／ 6.0〜12.0</td><td>1.0〜3.0</td><td>3.0〜3.0</td></tr>
+        <tr><td class="rowhdr">SUS304(片面#400研磨) ※</td><td>1.0〜2.0</td><td>1.2〜3.0</td><td colspan="2"><span class="dim">－</span></td></tr>
+        <tr><td class="rowhdr">SUS304(片面ヘアライン) ※</td><td>1.0〜2.0</td><td>1.2〜3.0</td><td colspan="2"><span class="dim">－</span></td></tr>
+        <tr><td class="rowhdr">SUS430(2B)</td><td>1.0〜2.0</td><td>1.2〜3.0</td><td>1.0〜3.0</td><td>2.0〜3.0</td></tr>
+        <tr><td class="rowhdr">A5052</td><td>1.0〜2.0</td><td>3.0〜6.0</td><td>1.0〜2.5</td><td>2.0〜2.0</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">※ SUS304(片面ヘアライン)は担当者見積のみ。SUS304(片面#400研磨)はスポット溶接を含む製品では担当者見積。
+      板厚違いの<b>出荷日は標準出荷日に1日加算</b>されます。</div>
+    <div class="info">板厚違いの加工限界は溶接種別で基準が異なります。アーク/レーザーは<b>最も厚いパーツ</b>、
+      スポットは面溶接部を構成する<b>薄い側のパーツ</b>の加工限界値が基準です。</div>
+  </section>
+
+  <section id="heat">
+    <h2>熱処理</h2>
+    <div class="info">板金溶接は<b>焼入れ等の熱処理は対象外</b>です。強度・硬度が必要な場合は切削サービスを検討してください。</div>
+  </section>
+
+  <section id="modeling">
+    <h2>モデリングの基本ルール</h2>
+    <p>板金として展開可能・不可能いずれの場合も板金溶接として見積可能。パーツ構成の条件は以下です。</p>
+    <figure class="fig"><img src="img/swd/15166_10_A.png" alt="板同士の接合を別ソリッドで構成するモデリング例" loading="lazy"><figcaption>板同士の接合は別ソリッドで構成するのが基本（モデリングルール例）。<span class="src">出典：meviy使い方マニュアル「モデリングの基本ルール」</span></figcaption></figure>
+    <ul>
+      <li><b>1部品構成</b>：展開できる状態（A）／展開できない状態（B）どちらも可。Bは製作可能な形状（A）に変換（板厚一定のモデルに限る）。</li>
+      <li><b>2部品以上・板同士の接合</b>：別ソリッドで構成（A）が基本。同一ソリッド（B）は製作可能形状に変換（板厚一定に限る）。</li>
+      <li><b>2部品以上・板の重ね合わせ</b>：溶接箇所が分割された状態（A）でモデリング。一体化（B）は<b>変換対象外</b>。</li>
+    </ul>
+    <div class="info">3Dデータに<b>溶接ビードは不要</b>。自動認識された溶接箇所に3Dビューワー上で溶接情報を設定します。
+      板厚違いや面同士を重ねた溶接品は、シングルソリッド（一体化）では見積できません。ソリッドが複数存在することを保存前に確認してください。</div>
+    <div class="note">角部溶接を希望する場合は、切欠きの大きさが<b>板厚の2倍以内</b>（1辺あたり）かつ
+      曲げと溶接部が交差する角が<b>90°以上</b>のモデリングを推奨します。
+      角部の穴埋めは、曲げと溶接部が交差する角でない場合は適用されません。</div>
+    <h3>3D設計ガイド（対応CAD例）</h3>
+    <p>SOLIDWORKS／iCAD／Inventor等の事例（リブ補強・羽付きボックス）があり、板金コマンドを使わずスケッチと押し出しのみでも設計可能です。
+       板厚一定の一般的なボックス形状は、シェルで作成したモデルでもmeviy板金溶接が板金形状にリモデルします。
+       読込可能フォーマットは各CADのネイティブ、Parasolid（.x_t）等。</p>
+  </section>
+
+  <section id="recognition">
+    <h2>溶接箇所の判定と認識サイズ</h2>
+    <p>3Dモデルの要素間の距離が<b>0.15mm以内</b>の部位を溶接箇所として判定します。</p>
+    <figure class="fig"><img src="img/swd/15168_01.png" alt="要素間距離0.15mm以内を溶接箇所と判定する例" loading="lazy"><figcaption>要素間の距離が0.15mm以内の部位を溶接箇所として自動判定する。<span class="src">出典：meviy使い方マニュアル「溶接箇所の判定と認識できるサイズ」</span></figcaption></figure>
+    <h3>溶接部として判定される箇所</h3>
+    <ul>
+      <li>複数ソリッド：ソリッド間距離 0.15mm以下の部位。</li>
+      <li>単一ソリッド：1枚の板金パーツで成立する形状のうち0.15mm以内の隙間がある部位。</li>
+      <li>0.15mm以内のスリットは溶接箇所と判定され、溶接不要の選択は不可。<b>溶接不要なら0.15mmより大きいスリット</b>を追加。</li>
+      <li>板平面の重ね合わせ：重なり部の外周線の溶接、またはスポット溶接として認識。</li>
+    </ul>
+    <h3>重ね合わせ板に穴がある場合の溶接判定サイズ</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>穴種</th><th>溶接部と判定されるサイズ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">丸穴</td><td>板厚3mm未満：ø6以上〜／板厚3mm以上：ø11以上〜</td></tr>
+        <tr><td class="rowhdr">長穴（先端部）</td><td>板厚3mm未満：ø6以上〜／板厚3mm以上：ø11以上〜</td></tr>
+        <tr><td class="rowhdr">角穴</td><td>制限なし</td></tr>
+      </tbody>
+    </table></div>
+    <h3>溶接部として判定されない箇所</h3>
+    <ul>
+      <li>ソリッド間距離が0.15mmより大きい部位。</li>
+      <li>板平面を重ねた溶接部上の曲げ辺（曲げ部の無い辺は認識する）。</li>
+      <li>斜めに配置された2つのソリッド間。</li>
+      <li>曲げの内側などの曲面の接触部（距離に関わらず認識不可）。</li>
+    </ul>
+    <h3>溶接困難な箇所の判定</h3>
+    <figure class="fig"><img src="img/swd/34500_01.png" alt="溶接トーチが届かず溶接位置の変更が提案される困難箇所の例" loading="lazy"><figcaption>溶接トーチが届かないなど、溶接位置の変更が提案される困難箇所の例。<span class="src">出典：meviy使い方マニュアル「溶接困難な箇所の判定」</span></figcaption></figure>
+    <p>溶接箇所と判定されても、溶接トーチが届かない等で溶接位置の変更が提案される場合があり、その際「品質同意事項」が表示されます。
+       溶接方向を「両側」から「片側」へ変更して解消するか、同意して見積を行ってください。同意した場合は任意の溶接方法・方向に変更して製作します。</p>
+  </section>
+
+  <section id="weld-info">
+    <h2>溶接情報の指示と内容</h2>
+    <p>[溶接情報]メニューで溶接種類・方法・方向・仕上げを設定します。指示はすべての溶接箇所に適用されます。</p>
+    <h3>溶接種類</h3>
+    <dl class="spec">
+      <dt>おまかせ</dt><dd>アークまたはレーザーで製作。種類は材質・板厚・形状から決定。</dd>
+      <dt>アーク溶接</dt><dd>TIG・半自動(CO2)等。安価・ビード幅が大きい。熱で歪みやすいが断続溶接で軽減可能。</dd>
+      <dt>レーザー溶接</dt><dd>ビード幅が小さく熱影響が少ない。隙間埋め・肉盛りには不向き。<b>担当者見積</b>。</dd>
+      <dt>スポット溶接</dt><dd>2枚の板を電極で挟み接合。薄板向きで歪みが発生しにくい。2面が重なる部分がある製品で選択可。</dd>
+    </dl>
+    <h3>溶接方法</h3>
+    <dl class="spec">
+      <dt>連続溶接</dt><dd>隙間なく連続して溶接。水密性・気密性保持に有効。</dd>
+      <dt>断続溶接</dt><dd>一定間隔をあけて溶接。一辺あたりの溶接長・箇所数を指定（固定値／割合で計算）。熱歪みを低減。</dd>
+    </dl>
+    <div class="note">断続溶接で選択した溶接長×箇所数が溶接可能な辺より長くなると、当該箇所は<b>連続溶接として判定</b>されます。
+      溶接間距離が<b>5mm未満</b>の場合は断続溶接が設定できません。</div>
+    <h3>溶接方向</h3>
+    <figure class="fig"><img src="img/swd/15172_01_B.png" alt="体裁面と溶接方向（片側・両側）の設定例" loading="lazy"><figcaption>体裁面（濃いオレンジ表示）と溶接方向（片側／両側）の設定例。<span class="src">出典：meviy使い方マニュアル「体裁面と溶接方向の設定」</span></figcaption></figure>
+    <p>片側（体裁面側）／片側（非体裁面側）／両側から選択。meviyが認識した体裁面は3Dビューワー上で濃いオレンジ色で表示され、パーツごとに反転可能です。</p>
+    <div class="note">板厚面と板平面のT字溶接、および板平面を重ねた溶接箇所は<b>溶接方向の指定不可</b>。
+      両側溶接ないし曲げ部を除いた全周溶接となります。スポット溶接の加工方向は形状により製造時に決定します。</div>
+    <h3>溶接仕上げ</h3>
+    <dl class="spec">
+      <dt>焼け取りのみ</dt><dd>溶接焼けを除去。方法は材質・表面処理で規定。工具が入らない部分の焼けは残る場合あり。</dd>
+      <dt>グラインダー仕上げ</dt><dd>焼け取りに加え溶接ビードを削り周囲面に対し平坦化。対象は製品外形部。</dd>
+      <dt>その他追加指示</dt><dd>上記に含まれない仕上げ（例：ヘアライン加工、オイルパンのため水漏れ無き事）は担当者見積。</dd>
+    </dl>
+    <div class="info">同一型番の再注文時は、初回注文時と同じ工法で溶接加工します（「おまかせ」選択時も同様）。</div>
+  </section>
+
+  <section id="spot">
+    <h2>スポット溶接</h2>
+    <figure class="fig"><img src="img/swd/32813_01.png" alt="2枚の板を電極で挟み接合するスポット溶接の加工イメージ" loading="lazy"><figcaption>2枚の板平面が重なる面溶接部を電極で挟み接合するスポット溶接。<span class="src">出典：meviy使い方マニュアル「スポット溶接加工と仕上げ」</span></figcaption></figure>
+    <p>溶接情報全体指示欄でスポット溶接にチェックすると、2枚の板平面が重なる箇所（面溶接部）をスポット溶接として見積もります。
+       重なり面積が小さく1点加工限界を満たせない場合は、当該箇所は通常溶接として見積もります。</p>
+    <dl class="spec">
+      <dt>加工機</dt><dd>定置式とテーブル式を製品形状で使い分け（工場決定）。痕の見た目が異なり、テーブル式は平置き面に凹みが出ず、凹み深さはテーブル式が大きい傾向。</dd>
+      <dt>スポット数パターン</dt><dd>通常／多め／少なめの3パターンから選択。1面あたりN点の具体的な点数指定や面ごとの指定は担当者見積。</dd>
+      <dt>自動見積条件</dt><dd>面溶接部1面あたり<b>2点以上</b>で自動見積対象。1点のみは条件付き（同一パーツ内、または他に溶接箇所がある等）で自動見積、該当しなければ強度不足懸念で担当者見積。</dd>
+    </dl>
+    <div class="info">スポット溶接の仕上げは、通常溶接で選択した仕上げ種類に関係なく<b>材質ごとに固定の方法</b>で実施。
+      スポット溶接痕は残った状態で出荷します。</div>
+  </section>
+
+  <section id="limit">
+    <h2>加工限界の範囲</h2>
+    <p>製品内の溶接部位・構成パーツについて加工可否を判定します。板厚が2種類以上の場合は<b>最も厚い板厚</b>の閾値を製品全体に適用します。</p>
+    <h3>溶接長の最小値（限界値 [mm]）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚 [mm]</th><th>SPCC/SPHC・SS400・SECC</th><th>SUS304・SUS430</th><th>A5052</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1.0</td><td>1.0</td><td>3.0</td><td>5.0</td></tr>
+        <tr><td class="rowhdr">2.0</td><td>2.0</td><td>2.0</td><td>10.0</td></tr>
+        <tr><td class="rowhdr">3.2 ／ 3.0</td><td>3.0</td><td>3.0</td><td>10.0</td></tr>
+        <tr><td class="rowhdr">4.5 ／ 4.0</td><td>5.0</td><td>4.0</td><td>15.0</td></tr>
+        <tr><td class="rowhdr">6.0</td><td>9.0</td><td>9.0</td><td>20.0</td></tr>
+        <tr><td class="rowhdr">10.0</td><td>10.0</td><td>10.0</td><td><span class="dim">－</span></td></tr>
+        <tr><td class="rowhdr">16.0 ／ 12.0</td><td>16.0</td><td>12.0</td><td><span class="dim">－</span></td></tr>
+      </tbody>
+    </table></div>
+    <h3>スポット溶接と穴・板端面との最小距離（限界値 [mm]）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚 [mm]</th><th>SPCC/SPHC</th><th>SECC</th><th>SUS304(2B)/SUS430(2B)</th><th>A5052</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1.0</td><td>5.0</td><td>10.0</td><td>6.0</td><td>8.0</td></tr>
+        <tr><td class="rowhdr">2.0</td><td>7.5</td><td>10.6</td><td>9.0</td><td>11.0</td></tr>
+        <tr><td class="rowhdr">3.2 ／ 3.0 ／ 2.5</td><td>10.0</td><td>13.2</td><td>11.0</td><td>12.0</td></tr>
+      </tbody>
+    </table></div>
+    <h3>スポット溶接間の最小距離（限界値 [mm]）</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>板厚 [mm]</th><th>SPCC/SPHC・SECC</th><th>SUS304(2B)/SUS430(2B)</th><th>A5052</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">1.0</td><td>15.0</td><td>15.0</td><td>20.0</td></tr>
+        <tr><td class="rowhdr">2.0</td><td>21.0</td><td>21.0</td><td>28.0</td></tr>
+        <tr><td class="rowhdr">3.2 ／ 3.0 ／ 2.5</td><td>27.0</td><td>27.0</td><td>32.0</td></tr>
+      </tbody>
+    </table></div>
+    <div class="info">この他、平行な溶接部間の最小距離、溶接部位と各種穴間の最小距離、スポット溶接と曲げ部までの最小距離、
+      最小曲げ高さ（SS400 板厚9.0でh=40.0）、曲げ幅寸法指定範囲（SS400 9.0で10〜500、SUS304(2B) 5.0で10〜850）、
+      鋭角曲げ最小角度（基本θ≧45°、一部素材・板厚はθ≧90°）等の限界値が規定されています。</div>
+  </section>
+
+  <section id="standard">
+    <h2>溶接・仕上げ規格</h2>
+    <h3>溶接加工基準</h3>
+    <ul>
+      <li><b>アーク溶接</b>：TIGまたは半自動(CO2)で加工。必要に応じ溶接棒を使用（鉄系3.2mm以上／SUS系4.0mm以上／アルミ2.0mm以上のアーク溶接で使用）。</li>
+      <li><b>レーザー溶接</b>：ファイバーレーザーまたはYAGレーザー（工場判断）。</li>
+      <li><b>溶接部の脚長（狙い値）</b>：鉄系/SUS系は 参考最小0.7×t1、最大1.5×t2（t1＝薄い板、t2＝厚い板）。A5052は最小3.5mm・最大10mm。</li>
+      <li><b>強度</b>：製品状態の強度保証はなし。構成パーツが溶接接合されていることを確認のうえ出荷。</li>
+    </ul>
+    <h3>仕上げ加工基準</h3>
+    <p>「焼け取りのみ」の方法は材質で異なり、粗いグラインダーかけ（SPCC/SPHC・SECC・A5052）または電解研磨（SUS系）で実施。
+       SPCC/SPHC・SECC・A5052材は内側に入り込んだ溶接焼けが残ります。
+       「グラインダー仕上げ」は外側のビードを平坦化（内側は対象外）。ステンレス材は内側の焼けも電解研磨で除去します。</p>
+    <div class="note">SUS304(片面#400研磨)のグラインダー仕上げ時は体裁面側を#400以上のバフ研磨で仕上げ。
+      SPCC/SPHC＋三価クロメート(黒)は<b>グラインダー仕上げのみ</b>選択可能です。</div>
+    <h3>溶接・仕上げ加工後の外観</h3>
+    <ul>
+      <li><b>スパッタ</b>：除去して出荷。無処理の鉄系・アルミは爪にかからない程度の除去痕が残る場合あり。ステンレスは除去痕を残さず出荷。</li>
+      <li><b>クラック・アンダーカット・オーバーラップ・アークストライク</b>：無きことを確認して出荷。</li>
+      <li><b>スラグ</b>：鉄系厚板の半自動溶接で発生し得る。可能な限り除去するが残る場合あり。スラグ部は表面処理がのりにくい傾向。</li>
+      <li><b>メッキ品の色むら</b>：完全に閉じたボックス隅部で発生する恐れ。付近に通し穴を設けると回避しやすい。</li>
+      <li><b>仮止め跡</b>：形状により仮止め溶接跡が見える場合あり（機能上問題なし）。</li>
+    </ul>
+  </section>
+
+  <section id="tolerance">
+    <h2>公差・反り歪み</h2>
+    <h3>許容寸法公差（溶接加工部）</h3>
+    <p>溶接加工部は JIS B0405 普通許容差の公差等級 <b>C級</b>を適用。基準寸法6以下の区分は6超〜30以下と統一。</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>基準寸法の区分 [mm]</th><th>規格値</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">30以下</td><td>±0.5</td></tr>
+        <tr><td class="rowhdr">30超 120以下</td><td>±0.8</td></tr>
+        <tr><td class="rowhdr">120超 400以下</td><td>±1.2</td></tr>
+        <tr><td class="rowhdr">400超 1,000以下</td><td>±2.0</td></tr>
+        <tr><td class="rowhdr">1,000超 2,000以下</td><td>±3.0</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">溶接加工部の公差は<b>複数の溶接加工部をまたぐ寸法</b>、および<b>曲げ部をまたぐ寸法</b>には適用されません。
+      塗装指定時は生地状態での規格値です。構成パーツ内でも溶接の熱影響を受ける箇所は溶接の公差等級が適用される場合があります。</div>
+    <h3>面取り規格値</h3>
+    <dl class="spec">
+      <dt>糸面取り</dt><dd>板厚面エッジ部のバリ・カエリを R0.1相当で仕上げ。</dd>
+      <dt>C/R面取り</dt><dd>角部C1（30°未満・170°超は対象外）＋板厚面エッジ部 R0.2以上（R0.3相当）。</dd>
+    </dl>
+    <h3>溶接加工の反り・歪み</h3>
+    <p>著しい反り・歪みはできる限り修正して出荷しますが、完全な除去は保証できません。板金溶接の寸法精度規格から外れる反り残りがある場合は出荷前にmeviyサポートから連絡することがあります。
+       アーク溶接の連続溶接は反り・歪みが大きくなる傾向があり、レーザー溶接への変更や断続溶接、板平面の重なり部はスポット溶接化で軽減できます。</p>
+  </section>
+
+  <section id="leak">
+    <h2>漏れ試験（漏れなきこと）</h2>
+    <p>[基本情報]メニューで「漏れなきこと」を設定すると、<b>すべての連続溶接箇所</b>で漏れ試験を実施します。
+       試験は材質・形状により<b>カラーチェック</b>または<b>スヌープ試験</b>を工場で選択（水張り試験は担当者見積）。</p>
+    <figure class="fig"><img src="img/swd/30158_01.png" alt="連続溶接部に対する漏れ試験の方法イメージ" loading="lazy"><figcaption>連続溶接箇所に対して実施する漏れ試験（カラーチェック等）の例。<span class="src">出典：meviy使い方マニュアル「漏れ試験方法と保証範囲」</span></figcaption></figure>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>溶接種類</th><th>溶接方法</th><th>漏れ試験</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">おまかせ（アーク/レーザー）</td><td>連続溶接</td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">おまかせ</td><td>断続溶接</td><td><span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">アーク溶接</td><td>連続溶接</td><td><span class="yes">○</span></td></tr>
+        <tr><td class="rowhdr">アーク溶接</td><td>断続溶接</td><td><span class="dim">△</span></td></tr>
+        <tr><td class="rowhdr">スポット溶接</td><td>－</td><td><span class="no">×</span>（試験箇所なし）</td></tr>
+      </tbody>
+    </table></div>
+    <p>指示可能な材質・表面処理は鉄系・ステンレス・アルミの主要材で〇（SUS304片面ヘアラインは△、パンチングメタルは－）。</p>
+    <h3>保証範囲（漏れなきことの対象）</h3>
+    <div class="info">以下を満たす用途の<b>連続溶接部およびソケット溶接部</b>が保証対象です。
+      室温10〜30℃の屋内使用／溶接部へ圧力がかからない／扱う流体は温度11〜49℃の水および油／水・油を一時的に貯める・放出する用途。</div>
+    <div class="note">保証対象外：室温10〜30℃外での使用（冷凍庫・ボイラー室等）／溶接部へ圧力がかかる使用／
+      水・油以外の流体（硫酸等の腐食性液体や液体窒素等）。</div>
+    <p>試験で漏れがなかった製品は浸透液・現像材を拭き取って出荷。形状によりビード上の微小段差に色（赤・白）が残ることがありますが品質に影響はありません。
+       漏れありと判断した製品は出荷しません。保証規定はMISUMI保証規約に準じます。</p>
+  </section>
+
+  <section id="service">
+    <h2>付帯サービス</h2>
+    <h3>面取り</h3>
+    <p>両面バリ取り機を使用するため体裁面に細かな傷が入る恐れがあります。糸面取りは鉄系・ステンレスで〇（A5052は担当者見積）。
+       C/R面取りは鉄系（板厚6.0mmは対象外）・SUS系で〇。<b>C/R面取りは長納期対象外</b>（順次対応予定）。</p>
+    <h3>クリーン洗浄</h3>
+    <p>脱脂洗浄／精密洗浄／電解研磨＋精密洗浄の3種に対応。対象サイズは1辺最大1,200mm、製品重量40kgまで（板厚制限なし）。</p>
+    <div class="note">洗浄で防錆目的の油分も除去されるため、未洗浄品に比べ<b>錆びやすくなる</b>場合があります。
+      溶接焼けは洗浄工程で完全には除去できません（洗浄品質への影響はなし）。</div>
+    <h3>品質管理</h3>
+    <ul>
+      <li>外観検査：傷・打痕・ムラ・塗装/表面処理状態・溶接部状態（目視）。</li>
+      <li>寸法確認：3Dビューワー表示の外形・位置寸法（デジタルノギス、角度測定器等）。</li>
+      <li>検査タイミング：各工程および出荷前検査。</li>
+      <li>梱包：ポリエチレン袋・気泡緩衝材・段ボール角当て等。長尺・重量品はパレット別送となる場合あり。</li>
+    </ul>
+  </section>
+
+  <section id="ship">
+    <h2>出荷日・納期</h2>
+    <p>締め時間内（20:00）の注文で翌営業日から1日目カウント（土日祝は非カウント）。標準出荷日に加え<b>長納期</b>にも対応します。
+       自動見積品の標準出荷日（代表例）：</p>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>材質／表面処理</th><th>通常溶接（焼け取り）</th><th>通常溶接（グラインダー）</th><th>スポットのみ</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">SPCC/SPHC</td><td>6日目</td><td>7日目</td><td>5日目</td></tr>
+        <tr><td class="rowhdr">SPCC/SPHC＋粉体塗装</td><td>－</td><td>9日目</td><td>7日目</td></tr>
+        <tr><td class="rowhdr">SPCC/SPHC＋無電解Ni／四三酸化鉄／三価クロメート</td><td>8日目</td><td>9日目</td><td>7日目</td></tr>
+        <tr><td class="rowhdr">SS400</td><td>7日目</td><td>8日目</td><td>－</td></tr>
+        <tr><td class="rowhdr">SECC</td><td>6日目</td><td>－</td><td>5日目</td></tr>
+        <tr><td class="rowhdr">SUS304(No.1／2B)</td><td>6日目</td><td>7日目</td><td>5日目</td></tr>
+        <tr><td class="rowhdr">SUS430(2B)</td><td>5日目</td><td>5日目</td><td>－</td></tr>
+        <tr><td class="rowhdr">A5052</td><td>6日目</td><td>7日目</td><td>5日目</td></tr>
+        <tr><td class="rowhdr">A5052＋アルマイト</td><td>8日目</td><td>9日目</td><td>－</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note">加算条件：板厚6mmのSPCC/SPHCは+1日。R曲げ形状を含む場合+1〜2日。ナット取付を含む場合+1〜2日。
+      <b>板厚が2種類以上の場合+1日</b>。溶接重量品（三辺合計1500mm超または20kg超）+1日。一部の粉体塗装色は+2〜3日。</div>
+    <h3>納期選択サービス</h3>
+    <div class="tbl-scroll"><table>
+      <thead><tr><th>納期</th><th>出荷日</th><th>特長</th><th>型番末尾</th></tr></thead>
+      <tbody>
+        <tr><td class="rowhdr">標準納期</td><td>6日目〜</td><td>最短6日目出荷</td><td>－</td></tr>
+        <tr><td class="rowhdr">長納期</td><td>20日目〜</td><td>品質同等・<b>価格30%OFF</b></td><td>-L</td></tr>
+      </tbody>
+    </table></div>
+    <div class="info">短納期サービスは未対応。長納期は表面処理品で+5日（25日目〜）。
+      鉄(無処理)9mm超、一部塗装品（粉体塗装2色 5Y7.2/1.4・5P9/1）、SUS304(No.1)、SUS304(片面#400研磨)は長納期対象外です。</div>
+  </section>
+</main></div>
+
+  <footer>
+    <p>← <a href="index.html">ホーム</a>　|　<a href="basics.html">横断の基本情報で他サービスと比較</a></p>
+    <p>出典：<a href="https://jp.meviy.misumi-ec.com/help/ja/technical_info/swd/" target="_blank" rel="noopener">meviy使い方マニュアル</a>（本サイトは技術情報を設計者向けに再構成した非公式版。最新・正式仕様は公式で確認）</p>
+  </footer>
+</div>
+
+<script src="scrollspy.js"></script>
+</body>
+</html>
