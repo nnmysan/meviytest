@@ -1,0 +1,80 @@
+# 本番用の列対応表テンプレート。自社システムの列定義書を確認して from: を記入する。
+# file_regex / encoding / key / 必須・型も実データに合わせて確認すること。
+status: template   # TODO を全て埋めるまで本番プロファイルは実行できない
+arrival:
+  due_business_day: 5          # 翌月何営業日目までに届く想定か（仮）
+  lookback_months: 13          # 未着チェックをさかのぼる月数
+masters:
+  entities:  {file: master/entities.csv,  key: entity_code,   required: [entity_code, entity_name, currency]}
+  products:  {file: master/products.csv,  key: product_code,  required: [product_code, product_name]}
+  org:       {file: master/org.csv,       key: section_code,  required: [section_code, section_name, team_code, team_name, division_code, division_name]}
+  customers: {file: master/customers.csv, key: customer_id,   required: [customer_id, customer_name, entity_code, industry, size_class]}
+  fx_rates:  {file: master/fx_rates.csv,  required: [month, currency, budget_rate, actual_rate]}
+  targets:   {file: master/targets.csv,   required: [kpi_id, month, scope_type, scope_key, target]}
+  owners:    {file: master/owners.csv,    required: [kpi_id, entity_code, product_code, owner, manager]}
+sources:
+  quotes:
+    dir: quotes
+    file_regex: '^quotes_(?P<entity>[A-Z]{2})_(?P<yyyymm>\d{6})(?P<suffix>_[a-z0-9]+)?\.csv$'
+    encoding: cp932
+    key: [quote_id]
+    control: {suffix: .ctl, amount_column: amount_local}
+    row_count_check: true
+    columns:
+      quote_id:     {from: TODO,   type: str,      required: true}
+      quote_date:   {from: TODO,     type: date,     required: true}
+      customer_id:  {from: TODO, type: str,     required: true}
+      product_code: {from: TODO,   type: code,     required: true, master: products}
+      entity_code:  {from: TODO, type: code,     required: true, master: entities}
+      section_code: {from: TODO,   type: code,     required: true, master: org}
+      amount_local: {from: TODO,   type: decimal,  required: true, min: 0}
+      currency:     {from: TODO,       type: str,      required: true}
+      updated_at:   {from: TODO,   type: datetime, required: true}
+  orders:
+    dir: orders
+    file_regex: '^orders_(?P<entity>[A-Z]{2})_(?P<yyyymm>\d{6})(?P<suffix>_[a-z0-9]+)?\.csv$'
+    encoding: cp932
+    key: [order_id, line_no]
+    control: {suffix: .ctl, amount_column: amount_local}
+    row_count_check: true
+    columns:
+      order_id:     {from: TODO,   type: str,      required: true}
+      line_no:      {from: TODO,     type: int,      required: true}
+      order_date:   {from: TODO,     type: date,     required: true}
+      quote_id:     {from: TODO,   type: str,      required: false}
+      customer_id:  {from: TODO, type: str,     required: true}
+      product_code: {from: TODO,   type: code,     required: true, master: products}
+      entity_code:  {from: TODO, type: code,     required: true, master: entities}
+      section_code: {from: TODO,   type: code,     required: true, master: org}
+      amount_local: {from: TODO,   type: decimal,  required: true, min: 0}
+      cost_local:   {from: TODO,       type: decimal,  required: true, min: 0}
+      currency:     {from: TODO,       type: str,      required: true}
+      status:       {from: TODO,       type: str,      required: true, allowed: [受注, 取消]}
+      updated_at:   {from: TODO,   type: datetime, required: true}
+  shipments:
+    dir: shipments
+    file_regex: '^shipments_(?P<entity>[A-Z]{2})_(?P<yyyymm>\d{6})(?P<suffix>_[a-z0-9]+)?\.csv$'
+    encoding: cp932
+    key: [order_id, line_no]
+    control: {suffix: .ctl}
+    row_count_check: true
+    columns:
+      order_id:   {from: TODO, type: str,      required: true}
+      line_no:    {from: TODO,   type: int,      required: true}
+      due_date:   {from: TODO, type: date,     required: true}
+      ship_date:  {from: TODO,   type: date,     required: false}
+      updated_at: {from: TODO, type: datetime, required: true}
+  defects:
+    dir: defects
+    file_regex: '^defects_(?P<entity>[A-Z]{2})_(?P<yyyymm>\d{6})(?P<suffix>_[a-z0-9]+)?\.csv$'
+    encoding: cp932
+    key: [defect_id]
+    control: {suffix: .ctl}
+    row_count_check: false
+    columns:
+      defect_id:  {from: TODO, type: str,      required: true}
+      order_id:   {from: TODO, type: str,      required: true}
+      line_no:    {from: TODO,   type: int,      required: true}
+      found_date: {from: TODO,   type: date,     required: true}
+      category:   {from: TODO, type: str,      required: false}
+      updated_at: {from: TODO, type: datetime, required: true}

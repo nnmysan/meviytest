@@ -1,0 +1,28 @@
+# 分析する内訳（スコープ）の定義。alerts: false の内訳は深掘り表示のみでアラート判定しない。
+fiscal_year_start_month: 4       # 会計年度の開始月（仮）
+meeting_business_day: 8          # 月次定例は翌月の第8営業日（仮）
+action_due_offset_business_days: 3   # アクション期限の初期値＝次回定例の3営業日前
+scopes:
+  - {type: total,          label: 全社,        dims: [],                              alerts: true,  parents: []}
+  - {type: entity,         label: 現地法人,    dims: [entity_code],                   alerts: true,  parents: [total]}
+  - {type: product,        label: 商品,        dims: [product_code],                  alerts: true,  parents: [total]}
+  - {type: entity_product, label: 法人×商品,   dims: [entity_code, product_code],     alerts: true,  parents: [entity, product]}
+  - {type: division,       label: 事業部,      dims: [division_code],                 alerts: true,  parents: [total]}
+  - {type: team,           label: チーム,      dims: [team_code],                     alerts: true,  parents: [division]}
+  - {type: section,        label: 課,          dims: [section_code],                  alerts: true,  parents: [team]}
+  - {type: industry,       label: 業種,        dims: [industry],                      alerts: true,  parents: [total]}
+  - {type: size,           label: 顧客規模,    dims: [size_class],                    alerts: true,  parents: [total]}
+  - {type: customer,       label: 顧客,        dims: [customer_id],                   alerts: false, parents: [total]}
+# アラート時に「どの内訳が変化を生んだか」を調べる軸
+drilldown:
+  total: [entity_code, product_code]
+  entity: [product_code, customer_id]
+  product: [entity_code, customer_id]
+  entity_product: [customer_id]
+  division: [team_code]
+  team: [section_code]
+  section: [customer_id]
+  industry: [entity_code, product_code]
+  size: [entity_code, product_code]
+# 率KPIの構成効果／率効果を分解する軸
+mix_dimension: product_code

@@ -1,0 +1,11 @@
+id: S18
+name: 為替変動（現地通貨では横ばい）
+description: 2026-08 のウォンの実績レートが前月比10%下落。現地通貨ベースの受注は変えない。
+seed: 20260901
+effects:
+  - {type: fx_shock, currency: KRW, month: 2026-08, change_vs_prev: -0.10}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [order_amount], scope_types: [entity], months: [2026-07, 2026-08]}
+  - {check: fx_ratio, kpi: order_amount, scope_key: entity_code=KR, month: 2026-08}
+  - {check: no_alert, kpi: order_amount, scope_key: entity_code=KR, priorities: [P1, P2]}

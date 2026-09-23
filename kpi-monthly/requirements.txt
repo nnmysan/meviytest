@@ -1,0 +1,6 @@
+# 動作確認済みのバージョン（Python 3.11）
+pandas==3.0.6
+duckdb==1.5.5
+pyarrow==25.0.1
+PyYAML==6.0.1
+pytest==9.1.1

@@ -1,0 +1,10 @@
+id: DEMO
+name: デモ（複数の事象を同時に含む月）
+description: ダッシュボードの見え方を確認するための組み合わせ。欧州×板金溶接の納期遅延、6月からの粗利率低下、7月の大口案件とその反動、未登録コード、欧州ファイルの遅延到着を同時に入れる。
+seed: 20260901
+effects:
+  - {type: late_prob, entity: EU, product: SWD, months: [2026-08], value: 0.30}
+  - {type: margin_shift, months: [2026-06, 2026-07, 2026-08], delta: -0.025}
+  - {type: large_order, month: 2026-07, entity: JP, product: MRD, share: 0.15}
+  - {type: unknown_code, source: orders, entity: JP, month: 2026-08, orders: 10, code: M5X}
+expect: []

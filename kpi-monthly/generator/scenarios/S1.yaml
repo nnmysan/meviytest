@@ -1,0 +1,14 @@
+id: S1
+name: 急な悪化（全社の受注が前月比で急減）
+description: 2026-08 の受注件数を全法人・全商品で 25% 減らす（単価は変えない）。
+seed: 20260901
+effects:
+  - {type: demand, months: [2026-08], factor: 0.75}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [order_amount, order_count], scope_types: [total, entity, product], months: [2026-07, 2026-08]}
+  - {check: alert, kpi: order_amount, scope_key: ALL, rule: abnormal, min_priority: P1}
+  - {check: alert, kpi: order_amount, scope_key: ALL, rule: target_miss, min_priority: P2}
+  - {check: alert, kpi: order_count, scope_key: ALL, rule: abnormal, min_priority: P1}
+  - {check: alert_field, kpi: order_amount, scope_key: ALL, rule: abnormal, column: cause_type, equals: count}
+  - {check: action, kpi: order_amount, scope_key: ALL, owner_contains: 経営企画, verb: 確認}

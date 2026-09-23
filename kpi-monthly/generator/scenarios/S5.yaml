@@ -1,0 +1,10 @@
+id: S5
+name: 季節性（欧州の8月休暇）
+description: 注入なし。欧州は毎年8月に受注が約30%落ちる季節性を持つ（前年同月比は平常）。
+seed: 20260901
+effects: []
+expect:
+  - {check: status, equals: ok}
+  - {check: field, kpi: order_amount, scope_key: entity_code=EU, month: 2026-08, column: pct, le: -0.15}
+  - {check: no_alert, kpi: order_amount, scope_key: entity_code=EU, priorities: [P1, P2]}
+  - {check: alert, kpi: order_amount, scope_key: entity_code=EU, rule: seasonal, min_priority: INFO}

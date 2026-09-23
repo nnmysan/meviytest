@@ -1,0 +1,17 @@
+id: avg_order_value
+name: 平均受注単価
+status: provisional
+version: 1
+order: 7
+denominator_label: 受注件数
+description: 受注金額 ÷ 受注件数（取消を除く）。KPI追加の検証用。
+type: ratio
+display: yen
+direction: higher_is_better
+view: v_order_lines
+numerator: SUM(amount_jpy)
+denominator: COUNT(DISTINCT order_id)
+where: "status <> '取消'"
+sources: [orders]
+maturity_days: 0
+owner_default: 営業企画 担当（仮）

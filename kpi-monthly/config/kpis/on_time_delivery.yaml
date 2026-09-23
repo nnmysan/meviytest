@@ -1,0 +1,19 @@
+id: on_time_delivery
+name: 納期遵守率
+status: provisional
+version: 1
+order: 5
+denominator_label: 納期到来明細数
+description: 回答納期が当月の明細のうち、納期内に出荷した割合（取消を除く）。納期を過ぎて未出荷の明細は未達。
+type: ratio
+display: percent
+direction: higher_is_better
+view: v_due_lines
+numerator: SUM(on_time)
+denominator: COUNT(*)
+sources: [shipments, orders]
+maturity_days: 0
+binomial: true
+owner_default: 生産管理 担当（仮）
+open_questions:
+  - 回答納期か希望納期か、出荷日か着荷日か

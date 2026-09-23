@@ -1,0 +1,20 @@
+id: quote_conversion
+name: 見積→受注転換率
+status: provisional
+version: 1
+order: 3
+denominator_label: 見積件数
+description: 見積日が当月の見積のうち、30日以内に受注（取消以外）に至った割合（見積発行月コホート）。直近月は30日経過まで「成熟待ち」。
+type: ratio
+display: percent
+direction: higher_is_better
+view: v_quotes
+numerator: SUM(converted_30d)
+denominator: COUNT(*)
+sources: [quotes, orders]
+maturity_days: 30
+binomial: true
+owner_default: 営業企画 担当（仮）
+open_questions:
+  - コホート方式か「当月受注件数÷当月見積件数」の簡易方式か
+  - 受注判定の期間（30日は仮）

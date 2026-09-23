@@ -1,0 +1,10 @@
+id: S0
+name: 通常推移（基準）
+description: 季節性・成長・ランダムなばらつきのみ。異常は注入しない。
+seed: 20260901
+effects: []
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: all, scope_types: [total, entity, product, entity_product], months: [2025-08, 2026-08]}
+  - {check: no_alert, category: 業績, priorities: [P1, P2]}
+  - {check: no_dq, priorities: [P1, P2]}

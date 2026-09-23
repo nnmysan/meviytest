@@ -1,0 +1,12 @@
+id: S6
+name: 一時的な大口案件とその反動
+description: 2026-07 の日本・切削丸物に、月の受注金額の15%を占める大口受注を1件追加する。8月は反動で前月比が大きく下がる。
+seed: 20260901
+effects:
+  - {type: large_order, month: 2026-07, entity: JP, product: MRD, share: 0.15}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [order_amount], scope_types: [entity_product], months: [2026-07, 2026-08]}
+  - {check: field, kpi: order_amount, scope_key: "entity_code=JP|product_code=MRD", month: 2026-08, column: pct, le: -0.1}
+  - {check: no_alert, kpi: order_amount, scope_key: "entity_code=JP|product_code=MRD", priorities: [P1, P2]}
+  - {check: field, kpi: order_amount, scope_key: "entity_code=JP|product_code=MRD", month: 2026-08, column: note, contains: 大口}

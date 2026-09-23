@@ -1,0 +1,15 @@
+id: S10
+name: 不正値・書式違い・文字コード違い
+description: 日本の8月受注に、必須欠損50行・負の金額20行・存在しない日付10行を追加。既存100行は全角数字・桁区切り・スラッシュ日付に変更。韓国の8月受注は UTF-8(BOM付) で出力。
+seed: 20260901
+effects:
+  - {type: invalid_rows, source: orders, entity: JP, month: 2026-08, null_customer: 50, negative_amount: 20, bad_date: 10}
+  - {type: reformat, source: orders, entity: JP, month: 2026-08, rows: 100}
+  - {type: encoding, source: orders, entity: KR, month: 2026-08, encoding: utf-8-sig}
+expect:
+  - {check: status, equals: ok}
+  - {check: quarantine, equals_fact: invalid_rows.total}
+  - {check: dq, rule: quarantine_rows, min_priority: P2}
+  - {check: dq, rule: encoding_mismatch, min_priority: INFO}
+  - {check: truth_match, kpis: all, scope_types: [total, entity, product, entity_product], months: [2026-07, 2026-08]}
+  - {check: no_alert, category: 業績, priorities: [P1, P2]}

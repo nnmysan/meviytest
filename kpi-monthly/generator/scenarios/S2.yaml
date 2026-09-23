@@ -1,0 +1,12 @@
+id: S2
+name: 目標未達の継続（前月比は小さい）
+description: 2026-06 から全明細の粗利率を 2.5pt 下げたまま推移させる。8月の前月比はほぼ 0。
+seed: 20260901
+effects:
+  - {type: margin_shift, months: [2026-06, 2026-07, 2026-08], delta: -0.025}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [gross_margin], scope_types: [total, entity, product], months: [2026-05, 2026-08]}
+  - {check: alert, kpi: gross_margin, scope_key: ALL, rule: target_miss, min_priority: P2}
+  - {check: alert_field, kpi: gross_margin, scope_key: ALL, rule: target_miss, column: consecutive_miss, ge: 3}
+  - {check: field, kpi: gross_margin, scope_key: ALL, month: 2026-08, column: diff, abs_le: 0.005}

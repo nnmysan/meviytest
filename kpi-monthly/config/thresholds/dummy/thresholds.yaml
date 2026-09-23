@@ -1,0 +1,51 @@
+# アラート閾値（ダミー検証用の仮の値）。
+# ・本番の判断基準としてそのまま使わないこと。本番では実データ過去24か月でバックテストして決め、承認者を記録する。
+status: provisional
+approved_by: null
+approved_at: null
+global:
+  history_min_months: 15        # 基準値（前年同月×直近トレンド）の計算に必要な月数
+  scale_window: 24              # ばらつき（MAD）を測る過去月数
+  scale_min_points: 8
+  significance_z: 2.0           # 率KPIの目標未達は標本誤差の2倍以上の差のみ
+  seasonal_info: {mom_drop: 0.15, max_z: 2.0}   # 前月比は大きく悪化、過去の同月も同様に低下、季節調整後は平常 → 季節要因の可能性（情報）
+  large_order_share: 0.12       # 1受注が内訳の月額の12%以上 → 大口案件（情報）
+  restatement: {sum_rel: 0.005, ratio_pt: 0.1, p2_sum_rel: 0.05, p2_ratio_pt: 1.0}
+  row_count: {low: 0.5, high: 2.0, lookback: 6}
+  info_scopes: [total, entity, product, entity_product]   # 季節要因・連続悪化・大口の通知を出す内訳（課などとの重複表示を避ける）
+  trend_significance: 2.0       # 連続悪化は、累計の変化が平常のばらつきの2倍以上のときのみ
+kpis:
+  order_amount:
+    target_miss: {p2: 0.90, p1: 0.80}                  # 達成率
+    abnormal: {p2: 3.5, p1: 5.0, min_scale: 0.03, p1_share_of_total: 0.10}   # z値、相対残差の最小スケール、全社の10%以上の影響はP1
+    materiality: {share_of_total: 0.01}                # 全社値の1%以上の乖離のみ
+    trend: {months: 3, cum: 0.10}
+  order_count:
+    target_miss: {p2: 0.90, p1: 0.80}
+    abnormal: {p2: 3.5, p1: 5.0, min_scale: 0.03, p1_share_of_total: 0.10}
+    materiality: {share_of_total: 0.01}
+    trend: {months: 3, cum: 0.10}
+  quote_conversion:
+    target_miss: {p2: 3.0, p1: 6.0}                    # pt
+    abnormal: {p2: 3.5, p1: 5.0, min_scale: 1.0}       # pt
+    materiality: {units: 10}                           # |差|×見積件数 ≥ 10件
+    min_denominator: 50
+    trend: {months: 3, cum: 3.0}
+  gross_margin:
+    target_miss: {p2: 1.5, p1: 3.0}
+    abnormal: {p2: 3.5, p1: 5.0, min_scale: 0.3}
+    materiality: {share_of_total_den: 0.002}           # 粗利影響が全社受注金額の0.2%以上
+    min_denominator: 5000000
+    trend: {months: 3, cum: 1.5}
+  on_time_delivery:
+    target_miss: {p2: 2.0, p1: 5.0}
+    abnormal: {p2: 3.5, p1: 5.0, min_scale: 1.0}
+    materiality: {units: 5}                            # 遅延明細の増減5件以上
+    min_denominator: 30
+    trend: {months: 3, cum: 3.0}
+  defect_rate:
+    target_miss: {p2: 0.3, p1: 0.6}
+    abnormal: {p2: 3.5, p1: 5.0, min_scale: 0.3}
+    materiality: {units: 3}
+    min_denominator: 30
+    trend: {months: 3, cum: 0.5}

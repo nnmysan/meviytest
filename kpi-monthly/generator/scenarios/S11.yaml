@@ -1,0 +1,17 @@
+id: S11
+name: 重複（ファイル再送・完全重複行・同一キーの新旧）
+description: 日本の8月受注ファイルを別名で再送。韓国の8月受注に2%の完全重複行と、同一キーで金額が異なる古い版5行を混入。
+seed: 20260901
+effects:
+  - type: duplicates
+    resend: {source: orders, entity: JP, month: 2026-08}
+    exact: {source: orders, entity: KR, month: 2026-08, share: 0.02}
+    conflict: {source: orders, entity: KR, month: 2026-08, n: 5}
+expect:
+  - {check: status, equals: ok}
+  - {check: dq, rule: duplicate_file, min_priority: INFO}
+  - {check: dq, rule: exact_duplicates, count_equals_fact: exact_duplicates}
+  - {check: dq, rule: key_conflicts, count_equals_fact: conflicting_keys}
+  - {check: truth_match, kpis: all, scope_types: [total, entity, product, entity_product], months: [2026-07, 2026-08]}
+  - {check: no_alert, category: 業績, priorities: [P1, P2]}
+  - {check: idempotent}

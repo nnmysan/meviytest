@@ -1,0 +1,18 @@
+id: order_count
+name: 受注件数
+status: provisional
+version: 1
+order: 2
+description: 受注日が当月の受注番号の件数（取消を除く）。1受注＝1法人・1商品・1課・1顧客を前提に内訳で合算可能。
+type: sum
+display: count
+direction: higher_is_better
+view: v_order_lines
+numerator: COUNT(DISTINCT order_id)
+where: "status <> '取消'"
+sources: [orders]
+maturity_days: 0
+owner_default: 経営企画 担当（仮）
+open_questions:
+  - 受注番号単位か明細行単位か
+  - 1受注に複数商品が含まれる場合の扱い（含まれる場合は内訳で合算できない）

@@ -1,0 +1,11 @@
+id: S15
+name: 未登録コード
+description: 日本の8月受注のうち30件の品目区分が、マスタにない「M5X」になっている。
+seed: 20260901
+effects:
+  - {type: unknown_code, source: orders, entity: JP, month: 2026-08, orders: 30, code: M5X}
+expect:
+  - {check: status, equals: ok}
+  - {check: dq, rule: unknown_code, min_priority: P2, count_equals_fact: unknown_code.rows}
+  - {check: field, kpi: order_amount, scope_key: product_code=UNK, month: 2026-08, column: value, approx_fact: unknown_code.amount_jpy}
+  - {check: truth_match, kpis: [order_amount, order_count, gross_margin], scope_types: [total, entity], months: [2026-08, 2026-08]}

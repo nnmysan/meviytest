@@ -1,0 +1,20 @@
+id: defect_rate
+name: 品質不良発生率
+status: provisional
+version: 1
+order: 6
+denominator_label: 出荷明細数
+description: 出荷日が当月の明細に対する不良件数の割合（不良は発見日にかかわらず出荷月に帰属）。直近月は発見が遅れるため30日間「成熟待ち」。
+type: ratio
+display: percent
+direction: lower_is_better
+view: v_shipped_lines
+numerator: SUM(defect_count)
+denominator: COUNT(*)
+sources: [shipments, orders, defects]
+maturity_days: 30
+binomial: true
+owner_default: 品質保証 担当（仮）
+open_questions:
+  - 出荷月帰属か発生（発見）月帰属か
+  - 社外クレームのみか社内不適合も含むか、件数か個数(ppm)か

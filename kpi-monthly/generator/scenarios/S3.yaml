@@ -1,0 +1,14 @@
+id: S3
+name: 特定の内訳だけ悪化（欧州 × 板金溶接の納期遅延）
+description: 納期が 2026-08 の欧州・板金溶接の明細だけ遅延確率を 30% に上げる（平常は約5%）。この内訳は月120明細程度と小さく、全社への影響は1pt未満。
+seed: 20260901
+effects:
+  - {type: late_prob, entity: EU, product: SWD, months: [2026-08], value: 0.30}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [on_time_delivery], scope_types: [total, entity, product, entity_product], months: [2026-08, 2026-08]}
+  - {check: alert, kpi: on_time_delivery, scope_key: "entity_code=EU|product_code=SWD", min_priority: P2}
+  - {check: no_alert, kpi: on_time_delivery, scope_key: ALL, priorities: [P1, P2]}
+  - {check: alert_field, kpi: on_time_delivery, scope_key: entity_code=EU, rule: abnormal, column: top_contributor, equals: SWD}
+  - {check: alert_field, kpi: on_time_delivery, scope_key: entity_code=EU, rule: abnormal, column: label, equals: 内訳のみ悪化}
+  - {check: action, kpi: on_time_delivery, scope_key: "entity_code=EU|product_code=SWD", owner_contains: 欧州・板金溶接, verb: 確認}

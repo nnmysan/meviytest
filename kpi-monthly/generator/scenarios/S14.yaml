@@ -1,0 +1,9 @@
+id: S14
+name: 列名の変更（取込停止）
+description: 韓国の8月受注ファイルで列名「受注金額」が「受注額」に変わっている。
+seed: 20260901
+effects:
+  - {type: rename_column, source: orders, entity: KR, month: 2026-08, rename: {受注金額: 受注額}}
+expect:
+  - {check: status, equals: blocked}
+  - {check: dq, rule: schema_error, min_priority: P1, message_contains: 受注金額}

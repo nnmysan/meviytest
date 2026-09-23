@@ -1,0 +1,11 @@
+id: S13
+name: 過去値の修正（2か月前の受注が後から取消）
+description: 日本の 2026-06 受注の約8%が後から取消となり、6月分の再抽出ファイルが2回目の取込で届く。
+seed: 20260901
+effects:
+  - {type: correction, source: orders, entity: JP, month: 2026-06, cancel_share: 0.08}
+expect:
+  - {check: status, equals: ok}
+  - {check: restatement, kpi: order_amount, scope_key: entity_code=JP, month: 2026-06, kind: 過去値修正, rel_change_fact: correction.rel_change}
+  - {check: dq, rule: restatement, min_priority: P2}
+  - {check: truth_match, kpis: [order_amount, order_count, gross_margin], scope_types: [total, entity], months: [2026-06, 2026-08]}

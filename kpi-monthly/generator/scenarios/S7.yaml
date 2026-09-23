@@ -1,0 +1,11 @@
+id: S7
+name: 前月値なし（新規の内訳）
+description: 欧州の板金溶接を 2026-08 から取扱開始とする（それ以前は実績ゼロ）。
+seed: 20260901
+effects:
+  - {type: product_start, entity: EU, product: SWD, start_month: 2026-08}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [order_amount, order_count], scope_types: [entity_product], months: [2026-08, 2026-08]}
+  - {check: field, kpi: order_amount, scope_key: "entity_code=EU|product_code=SWD", month: 2026-08, column: prev_status, equals: 新規}
+  - {check: no_alert, scope_key: "entity_code=EU|product_code=SWD", priorities: [P1, P2]}

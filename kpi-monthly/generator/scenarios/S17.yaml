@@ -1,0 +1,12 @@
+id: S17
+name: KPIの追加（設定ファイルのみ）
+description: データは通常どおり。設定に「平均受注単価」の定義ファイルを1つ追加して実行する。
+seed: 20260901
+effects: []
+extra_kpis: [extra/avg_order_value.yaml]
+expect:
+  - {check: status, equals: ok}
+  - {check: ratio_of_truth, kpi: avg_order_value, num_kpi: order_amount, den_kpi: order_count, scope_key: ALL, month: 2026-08}
+  - {check: ratio_of_truth, kpi: avg_order_value, num_kpi: order_amount, den_kpi: order_count, scope_key: entity_code=EU, month: 2026-08}
+  - {check: dashboard_has_kpi, kpi: avg_order_value}
+  - {check: no_alert, kpi: avg_order_value, priorities: [P1, P2, P3]}

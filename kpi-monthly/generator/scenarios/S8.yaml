@@ -1,0 +1,13 @@
+id: S8
+name: 母数が小さい内訳（出荷数件で不良1件）
+description: 中国・板金溶接の受注を 2026-05〜07 は月2件（各2明細）に絞り、7月出荷分に不良を1件入れる。品質不良率は直近月が成熟待ちのため7月で判定される。
+seed: 20260901
+effects:
+  - {type: volume_override, entity: CN, product: SWD, months: [2026-05, 2026-06, 2026-07], orders: 2, lines: 2}
+  - {type: force_defects, entity: CN, product: SWD, month: 2026-07, count: 1}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [defect_rate], scope_types: [entity_product], months: [2026-07, 2026-07]}
+  - {check: field, kpi: defect_rate, scope_key: "entity_code=CN|product_code=SWD", month: 2026-07, column: small_sample, equals: true}
+  - {check: field, kpi: defect_rate, scope_key: "entity_code=CN|product_code=SWD", month: 2026-07, column: value, ge: 0.1}
+  - {check: no_alert, kpi: defect_rate, scope_key: "entity_code=CN|product_code=SWD", priorities: [P1, P2]}

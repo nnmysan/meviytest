@@ -1,0 +1,14 @@
+id: S9
+name: データ欠損（韓国の当月ファイルが未着）
+description: 韓国の 2026-08 以降のファイル（見積・受注・出荷・不良）が届かない。
+seed: 20260901
+effects:
+  - {type: drop_files, entity: KR, from_month: 2026-08}
+expect:
+  - {check: status, equals: ok}
+  - {check: dq, rule: missing_file, min_priority: P1, count_ge: 4}
+  - {check: field, kpi: order_amount, scope_key: entity_code=KR, month: 2026-08, column: data_status, equals: 未着}
+  - {check: field, kpi: order_amount, scope_key: ALL, month: 2026-08, column: data_status, equals: 一部未着}
+  - {check: no_alert, category: 業績, priorities: [P1, P2]}
+  - {check: manifest, key: suppressed_business_checks, ge: 1}
+  - {check: truth_match, kpis: all, scope_keys: [entity_code=JP, entity_code=EU, entity_code=CN], months: [2026-08, 2026-08]}

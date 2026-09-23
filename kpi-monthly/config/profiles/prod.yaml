@@ -1,0 +1,11 @@
+name: prod
+is_dummy: false
+label: 本番
+kpi_dir: config/kpis
+sources: config/sources/prod/sources.yaml
+thresholds: config/thresholds/prod/thresholds.yaml
+analysis: config/analysis.yaml
+action_templates: config/actions/templates.yaml
+holidays: config/calendar/holidays_jp.csv
+review_dir: null            # 本番は Microsoft Lists 等から出力したレビュー結果の置き場所を指定
+require_approved: true      # KPI定義・閾値・列対応がすべて承認済みでないと実行しない

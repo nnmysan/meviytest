@@ -1,0 +1,7 @@
+# 本番用閾値。実データでのバックテスト後に値を決め、status: approved と承認者・承認日を記入する。
+# status が approved でない間、本番プロファイルは実行を停止する（ダミーの仮値が本番判断に流用されるのを防ぐ）。
+status: provisional
+approved_by: null
+approved_at: null
+global: {}
+kpis: {}

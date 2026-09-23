@@ -1,0 +1,3 @@
+month,kpi_id,scope_key,author,fact,cause,action
+2026-08,gross_margin,ALL,経営企画部長（仮）,粗利率は3か月連続で目標を下回った（ダミー）,【仮説・確認中】6月の材料単価改定の影響,価格転嫁の交渉状況を次回定例で報告
+2026-08,on_time_delivery,entity_code=EU|product_code=SWD,板金事業部長（仮）,欧州×板金溶接の納期遵守率が急低下（ダミー）,【未検証】溶接工程の設備停止の影響を確認中,遅延明細の理由区分を9/18までに提出

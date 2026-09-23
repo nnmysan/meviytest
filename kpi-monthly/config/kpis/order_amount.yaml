@@ -1,0 +1,22 @@
+# KPI定義。status: provisional は「仮の定義」。本番プロファイルでは approved でないと実行できない。
+id: order_amount
+name: 受注金額
+status: provisional
+version: 1
+order: 1
+description: 受注日が当月の受注明細金額の合計（取消を除く）。現地通貨を予算レートで円換算。実績レート換算値も併記。
+type: sum            # sum: 分子の合計 / ratio: 分子÷分母（分子・分母は別々に集計してから割る）
+display: yen         # yen / count / percent
+direction: higher_is_better
+view: v_order_lines
+numerator: SUM(amount_jpy)
+where: "status <> '取消'"
+extra_measures:
+  actual_fx: SUM(amount_jpy_actual)
+sources: [orders]
+maturity_days: 0
+drivers: {count_kpi: order_count}   # 受注金額 = 受注件数 × 平均単価 で前月差を分解
+owner_default: 経営企画 担当（仮）
+open_questions:
+  - 税抜/税込、取消を受注月から控除するか取消月に計上するか
+  - 円換算レート（予算レート／実績レート）の正式な扱い

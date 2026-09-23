@@ -1,0 +1,9 @@
+id: S16
+name: 件数・金額の照合不一致（取込停止）
+description: 中国の8月受注ファイルの末尾30行が欠落。管理ファイルの件数・金額とは一致しない。
+seed: 20260901
+effects:
+  - {type: truncate, source: orders, entity: CN, month: 2026-08, drop_last_rows: 30}
+expect:
+  - {check: status, equals: blocked}
+  - {check: dq, rule: control_mismatch, min_priority: P1}

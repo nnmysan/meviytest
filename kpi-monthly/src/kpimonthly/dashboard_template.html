@@ -1,0 +1,672 @@
+<meta charset="utf-8">
+<title>月次KPIボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f3f4f2; --surface:#ffffff; --surface-2:#eceeec; --ink:#15181b; --ink-2:#4f565d; --ink-3:#7b8389;
+  --rule:#dde1df; --accent:#2a78d6; --accent-soft:#2a78d61f; --pos:#2a78d6; --neg:#e34948; --prior:#9aa2a7;
+  --crit:#d03b3b; --serious:#ec835a; --warn:#fab219; --good:#0ca30c; --info:#7b8389;
+  --dummy-bg:#fff4d6; --dummy-ink:#6b4b00;
+  --font:"IBM Plex Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#111314; --surface:#1a1c1e; --surface-2:#232628; --ink:#eef1f0; --ink-2:#b6bdc1; --ink-3:#899196;
+    --rule:#2f3437; --accent:#3987e5; --accent-soft:#3987e52b; --pos:#3987e5; --neg:#e66767; --prior:#6f787d;
+    --dummy-bg:#3a2f12; --dummy-ink:#f5d58a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#111314; --surface:#1a1c1e; --surface-2:#232628; --ink:#eef1f0; --ink-2:#b6bdc1; --ink-3:#899196;
+  --rule:#2f3437; --accent:#3987e5; --accent-soft:#3987e52b; --pos:#3987e5; --neg:#e66767; --prior:#6f787d;
+  --dummy-bg:#3a2f12; --dummy-ink:#f5d58a;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.55;margin:0}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:20px;padding-block:0 48px}
+.num,td.n,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{text-wrap:balance;margin:0}
+button,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.dummy{background:var(--dummy-bg);color:var(--dummy-ink);font-size:13px;padding:8px 20px;text-align:left}
+.dummy b{font-weight:700}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-block:20px 12px}
+header.top h1{font-size:22px;font-weight:700;letter-spacing:.01em}
+header.top .sub{color:var(--ink-2);font-size:13px;margin-top:2px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--ink-2);font-size:12px}
+.meta span b{color:var(--ink);font-weight:600}
+
+nav.tabs{display:flex;gap:2px;border-bottom:1px solid var(--rule);overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px;cursor:pointer;color:var(--ink-2);white-space:nowrap;font-weight:500}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--surface-2);font-size:11px;font-family:var(--mono)}
+section.panel{padding-top:20px}
+.lead{color:var(--ink-2);font-size:13px;max-width:72ch;margin:0 0 14px}
+h2.sec{font-size:15px;font-weight:600;margin:24px 0 10px;display:flex;align-items:baseline;gap:10px}
+h2.sec small{font-weight:400;color:var(--ink-3);font-size:12px}
+
+/* KPI tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px 10px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left}
+.tile:hover{border-color:var(--ink-3)}
+.tile .name{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--ink-2);font-weight:500}
+.tile .val{font-size:26px;font-weight:600;letter-spacing:-.01em;line-height:1.2}
+.tile .rows{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:12px;color:var(--ink-2)}
+.tile .rows dd{margin:0;text-align:right;font-family:var(--mono);color:var(--ink)}
+.tile .rows dt{margin:0}
+.tile svg{display:block;width:100%;height:44px}
+.good-t{color:var(--good)} .bad-t{color:var(--crit)}
+:root[data-theme="dark"] .good-t{color:#4cc24c}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:1px 7px;border-radius:3px;border:1px solid var(--rule);background:var(--surface-2);color:var(--ink-2);white-space:nowrap;line-height:18px}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;display:none}
+.chip.p1{color:#fff;background:var(--crit);border-color:var(--crit)}
+.chip.p1::before{display:block;background:#fff}
+.chip.p2{color:var(--ink);border-color:var(--serious);background:transparent}
+.chip.p2::before{display:block;background:var(--serious)}
+.chip.p3{color:var(--ink);border-color:var(--warn);background:transparent}
+.chip.p3::before{display:block;background:var(--warn)}
+.chip.info{color:var(--ink-2)}
+.chip.st-wait{color:var(--dummy-ink);background:var(--dummy-bg);border-color:transparent}
+.chip.st-miss{color:#fff;background:var(--crit);border-color:var(--crit)}
+.chip.lbl{background:transparent;border-style:dashed}
+
+/* alerts */
+.alist{display:flex;flex-direction:column;gap:8px}
+.alert{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--info);border-radius:4px;padding:10px 14px;display:grid;gap:4px}
+.alert.p1{border-left-color:var(--crit)} .alert.p2{border-left-color:var(--serious)} .alert.p3{border-left-color:var(--warn)}
+.alert .hd{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.alert .hd .what{font-weight:600}
+.alert .msg{margin:0}
+.alert ul{margin:2px 0 0;padding-left:18px;color:var(--ink-2);font-size:13px}
+.alert .ft{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:12px;color:var(--ink-3)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:12px;font-weight:500}
+.linkbtn:hover{text-decoration:underline}
+.filters{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:end;margin-bottom:12px}
+.filters label{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:.02em}
+.filters select{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;min-width:120px;max-width:220px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.seg button{background:var(--surface);border:0;padding:5px 10px;cursor:pointer;font-size:12px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* analysis */
+.grid2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px}
+.card h3{font-size:13px;font-weight:600;margin-bottom:2px}
+.card .cap{font-size:12px;color:var(--ink-3);margin:0 0 8px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink-2);margin-bottom:4px}
+.legend i{display:inline-block;width:14px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart text{fill:var(--ink-3);font-family:var(--mono);font-size:10.5px}
+.chart .lab{fill:var(--ink-2);font-family:var(--font);font-size:11.5px}
+.chart .grid line{stroke:var(--rule);stroke-width:1}
+.summary-line{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;margin:0 0 8px}
+.summary-line b{font-family:var(--mono);font-weight:500}
+.kv{display:flex;flex-wrap:wrap;gap:4px 20px;margin:6px 0 0;font-size:13px}
+.kv div span{color:var(--ink-3);margin-right:6px;font-size:12px}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:top}
+th{font-size:11px;color:var(--ink-3);font-weight:600;letter-spacing:.02em;background:var(--surface-2);white-space:nowrap;position:sticky;top:0}
+td.n,th.n{text-align:right;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+.muted{color:var(--ink-3)}
+
+/* actions */
+.acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+@media (max-width:520px){.acts{grid-template-columns:1fr}}
+.act{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.act h3{font-size:14px;font-weight:600;line-height:1.45}
+.act .blk{display:grid;gap:3px}
+.act .blk > span{font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.04em}
+.act ul{margin:0;padding-left:18px}
+.act li{margin:1px 0}
+.hyp{display:flex;gap:8px;align-items:baseline}
+.hyp .chip{flex:none}
+.act .own{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:2px 20px;font-size:12px;border-top:1px solid var(--rule);padding-top:8px}
+.act .own span{color:var(--ink-3);display:block;font-size:11px}
+
+/* DQ matrix */
+.matrix td,.matrix th{text-align:center}
+.cell{display:inline-flex;flex-direction:column;align-items:center;gap:0;font-size:12px;line-height:1.3}
+.cell .s{font-weight:600}
+.cell.ok .s{color:var(--good)} .cell.miss .s{color:var(--crit)} .cell.late .s{color:#b86a00}
+:root[data-theme="dark"] .cell.late .s{color:var(--warn)}
+.banner{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--crit);border-left-width:4px;border-radius:4px;padding:10px 14px;margin-top:14px}
+.banner.ok{border-color:var(--rule);border-left-color:var(--good)}
+.empty{color:var(--ink-3);font-size:13px;padding:10px 0}
+
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--bg);font-size:12px;padding:7px 9px;border-radius:4px;max-width:280px;line-height:1.45;box-shadow:0 4px 14px #0003}
+#tip b{font-weight:600}
+@media (prefers-reduced-motion:no-preference){.tile,.alert{transition:border-color .15s}}
+@media (max-width:560px){.wrap{padding-inline:16px} header.top h1{font-size:19px} .tile .val{font-size:22px}}
+</style>
+
+<div id="dummy" class="dummy" hidden></div>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>月次KPIボード</h1>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="main"></main>
+</div>
+<div id="tip" hidden></div>
+
+<script id="kpi-data" type="application/json">__DATA__</script>
+<script>
+(() => {
+"use strict";
+const D = JSON.parse(document.getElementById("kpi-data").textContent);
+const M = D.manifest, TM = M.target_month;
+const KPI = Object.fromEntries(D.kpis.map(k => [k.id, k]));
+const MONTHS = D.months, M13 = MONTHS.slice(-13);
+const DIMS = D.dims;
+const SEC = Object.fromEntries(D.org.map(o => [o.section_code, o]));
+const DIM_LABEL = {entity_code:"現地法人", product_code:"商品", division_code:"事業部", team_code:"チーム", section_code:"課", industry:"業種", size_class:"顧客規模", customer_id:"顧客"};
+const PRIO = {P1:1, P2:2, P3:3, INFO:4};
+const PRIO_LABEL = {P1:"P1 要対応", P2:"P2 要確認", P3:"P3 注視", INFO:"情報"};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = s => document.querySelector(s);
+
+// ---------- 細粒度データを列指向に（任意の絞り込みで分子・分母を合計してから割る）
+const FC = D.fine_cols, F = {};
+FC.forEach((c, i) => F[c] = D.fine.map(r => r[i]));
+F.team_code = F.section_code.map(s => SEC[s]?.team_code ?? "UNK");
+F.division_code = F.section_code.map(s => SEC[s]?.division_code ?? "UNK");
+const NF = D.fine.length;
+const CC = D.cust_cols, C = {};
+CC.forEach((c, i) => C[c] = D.cust.map(r => r[i]));
+const NC = D.cust.length;
+const SER = new Map();
+D.series.forEach(r => { const o = Object.fromEntries(D.series_cols.map((c, i) => [c, r[i]])); SER.set(`${o.kpi_id}|${o.scope_key}|${o.month}`, o); });
+const TGT = new Map(D.targets.map(r => [`${r[0]}|${r[1]}|${r[3]}`, r[4]]));
+
+function agg(kid, months, filt, by) {
+  const out = new Map(); const ms = new Set(months);
+  for (let i = 0; i < NF; i++) {
+    if (F.kpi_id[i] !== kid || !ms.has(F.month[i])) continue;
+    let ok = true;
+    for (const d in filt) if (filt[d] && F[d][i] !== filt[d]) { ok = false; break; }
+    if (!ok) continue;
+    const k = (by ? F[by][i] : "ALL") + "|" + F.month[i];
+    const o = out.get(k) || {num:0, den:0, afx:0};
+    o.num += F.num[i] || 0; o.den += F.den[i] || 0; o.afx += F.actual_fx[i] || 0;
+    out.set(k, o);
+  }
+  return out;
+}
+function aggCust(kid, months, filt) {
+  const out = new Map(); const ms = new Set(months);
+  for (let i = 0; i < NC; i++) {
+    if (C.kpi_id[i] !== kid || !ms.has(C.month[i])) continue;
+    let ok = true;
+    for (const d in filt) {
+      if (!filt[d]) continue;
+      let v = d === "team_code" ? SEC[C.section_code[i]]?.team_code : d === "division_code" ? SEC[C.section_code[i]]?.division_code : C[d]?.[i];
+      if (C[d] === undefined && !["team_code","division_code"].includes(d)) { ok = false; break; } // 業種・規模は顧客データで絞れない
+      if (v !== filt[d]) { ok = false; break; }
+    }
+    if (!ok) continue;
+    const k = C.customer_id[i] + "|" + C.month[i];
+    const o = out.get(k) || {num:0, den:0};
+    o.num += C.num[i] || 0; o.den += C.den[i] || 0; out.set(k, o);
+  }
+  return out;
+}
+const val = (k, o) => !o ? null : KPI[k].type === "sum" ? o.num : (o.den > 0 ? o.num / o.den : null);
+const prevM = m => MONTHS[MONTHS.indexOf(m) - 1];
+const yoyM = m => MONTHS[MONTHS.indexOf(m) - 12];
+const good = (k, d) => d == null ? null : (KPI[k].direction === "higher_is_better" ? d > 0 : d < 0);
+
+// ---------- 書式
+function fv(k, v) {
+  if (v == null || Number.isNaN(v)) return "—";
+  const d = KPI[k].display;
+  if (d === "percent") return (v * 100).toFixed(KPI[k].id === "defect_rate" ? 2 : 1) + "%";
+  if (d === "yen") return Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "億円" : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + "百万円" : Math.round(v).toLocaleString("ja-JP") + "円";
+  return Math.round(v).toLocaleString("ja-JP") + "件";
+}
+function fd(k, d) {
+  if (d == null || Number.isNaN(d)) return "—";
+  const s = d > 0 ? "+" : d < 0 ? "−" : "±"; const a = Math.abs(d);
+  const disp = KPI[k].display;
+  if (disp === "percent") return s + (a * 100).toFixed(KPI[k].id === "defect_rate" ? 2 : 1) + "pt";
+  if (disp === "yen") return s + (a >= 1e8 ? (a / 1e8).toFixed(2) + "億円" : a >= 1e6 ? (a / 1e6).toFixed(1) + "百万円" : Math.round(a).toLocaleString("ja-JP") + "円");
+  return s + Math.round(a).toLocaleString("ja-JP") + "件";
+}
+const fp = p => p == null || !isFinite(p) ? "—" : (p > 0 ? "+" : p < 0 ? "−" : "±") + Math.abs(p * 100).toFixed(1) + "%";
+const mlabel = m => `${m.slice(0,4)}年${+m.slice(5)}月`;
+const mshort = m => `${+m.slice(5)}月`;
+const dimName = (d, v) => v === "UNK" ? "未分類" : (DIMS[d]?.[v] ?? v);
+const scopeLabel = key => !key || key === "ALL" ? "全社" : key.split("|").map(kv => { const [d, v] = kv.split("="); return dimName(d, v); }).join(" × ");
+const SRC_JP = {quotes:"見積", orders:"受注", shipments:"出荷・納期", defects:"品質不良"};
+const chip = p => `<span class="chip ${p.toLowerCase()}">${PRIO_LABEL[p] ?? p}</span>`;
+const tone = (k, d) => { const g = good(k, d); return g == null || d === 0 ? "" : g ? "good-t" : "bad-t"; };
+function statusChip(st) {
+  if (!st || st === "OK") return "";
+  if (st === "成熟待ち") return `<span class="chip st-wait" title="直近月は確定待ち（受注・不良の発見が後から追加される）">成熟待ち</span>`;
+  return `<span class="chip st-miss" title="データ未着のため暫定値">${esc(st)}</span>`;
+}
+
+// ---------- ツールチップ
+const tip = $("#tip");
+function showTip(e, html) { tip.innerHTML = html; tip.hidden = false; moveTip(e); }
+function moveTip(e) {
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => { tip.hidden = true; };
+
+// ---------- 状態
+const state = {tab: "summary", kpi: D.kpis[0].id, month: TM, by: "entity_code", filt: {}, prio: "P1P2"};
+try { const s = JSON.parse(localStorage.getItem("kpiboard") || "{}"); if (s.tab) state.tab = s.tab; } catch (e) {}
+const save = () => { try { localStorage.setItem("kpiboard", JSON.stringify({tab: state.tab})); } catch (e) {} };
+
+// ---------- ヘッダー
+if (M.is_dummy) {
+  const d = $("#dummy"); d.hidden = false;
+  d.innerHTML = `<b>ダミーデータ（検証用）</b>　表示中の数値・顧客名・組織・目標はすべて架空です。KPI定義とアラート閾値は仮（${esc(D.thresholds_status)}）の値で、実際の判断基準ではありません。`;
+}
+$("#sub").textContent = `対象月 ${mlabel(TM)}　·　${M.profile_label ?? M.profile}`;
+$("#meta").innerHTML = [
+  ["取込日", M.as_of], ["集計版", M.run_id + (M.finalized ? "（確定）" : "（暫定）")], ["定例", M.meeting_date],
+  ["設定", M.config_revision]].map(([a, b]) => `<span>${a} <b class="mono">${esc(b)}</b></span>`).join("");
+
+const bizAlerts = D.alerts.filter(a => a.priority !== "INFO" || true);
+const dqCount = D.dq.filter(q => ["P1","P2"].includes(q.priority)).length;
+const TABS = [
+  ["summary", "経営サマリー"], ["analysis", "原因分析"],
+  ["alerts", "アラート", D.alerts.filter(a => ["P1","P2"].includes(a.priority)).length],
+  ["actions", "アクション", D.actions.length], ["dq", "データ品質", dqCount], ["defs", "KPI定義"]];
+function renderTabs() {
+  $("#tabs").innerHTML = TABS.map(([id, name, n]) =>
+    `<button role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${name}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("");
+}
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) go(b.dataset.tab); });
+function go(tab) { state.tab = tab; save(); render(); window.scrollTo({top: 0}); }
+
+// ---------- 小さなグラフ
+function spark(k, vals, months) {
+  const W = 240, H = 44, pad = 4;
+  const pts = vals.map((v, i) => [i, v]).filter(p => p[1] != null);
+  if (pts.length < 2) return `<svg viewBox="0 0 ${W} ${H}"></svg>`;
+  const ys = pts.map(p => p[1]); let lo = Math.min(...ys), hi = Math.max(...ys);
+  if (hi === lo) { hi += 1; lo -= 1; }
+  const x = i => pad + i * (W - pad * 2) / (vals.length - 1);
+  const y = v => H - pad - (v - lo) / (hi - lo) * (H - pad * 2);
+  const line = pts.map((p, j) => (j ? "L" : "M") + x(p[0]).toFixed(1) + "," + y(p[1]).toFixed(1)).join("");
+  const area = line + `L${x(pts.at(-1)[0]).toFixed(1)},${H}L${x(pts[0][0]).toFixed(1)},${H}Z`;
+  const last = pts.at(-1);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(KPI[k].name)}の直近13か月の推移">
+    <path d="${area}" fill="var(--accent-soft)" stroke="none"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    <circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></svg>`;
+}
+
+// ---------- 経営サマリー
+function renderSummary() {
+  const tiles = D.kpis.map(k => {
+    const s = m => SER.get(`${k.id}|ALL|${m}`);
+    const cur = s(TM), prv = s(prevM(TM)), yoy = s(yoyM(TM));
+    const v = cur?.value, pv = prv?.value, yv = yoy?.value;
+    const d = v != null && pv != null ? v - pv : null;
+    const t = cur?.target;
+    const worst = D.alerts.filter(a => a.kpi_id === k.id && a.scope_key === "ALL" && a.priority !== "INFO").sort((a, b) => PRIO[a.priority] - PRIO[b.priority])[0];
+    const pct = k.display === "percent";
+    return `<button class="tile" data-kpi="${k.id}" aria-label="${esc(k.name)}の原因分析を開く">
+      <div class="name"><span>${esc(k.name)}</span><span>${statusChip(cur?.data_status)} ${worst ? chip(worst.priority) : ""}</span></div>
+      <div class="val num">${fv(k.id, v)}</div>
+      ${spark(k.id, M13.map(m => s(m)?.value ?? null), M13)}
+      <dl class="rows">
+        <dt>前月差</dt><dd class="${tone(k.id, d)}">${fd(k.id, d)}${!pct && pv ? `（${fp(v / pv - 1)}）` : ""}</dd>
+        <dt>目標</dt><dd>${t != null ? `${fv(k.id, t)}　<span class="${tone(k.id, v - t)}">${pct ? fd(k.id, v - t) : (v / t * 100).toFixed(0) + "%"}</span>` : "—"}</dd>
+        <dt>前年同月</dt><dd class="${tone(k.id, v != null && yv != null ? v - yv : null)}">${pct ? fd(k.id, v != null && yv != null ? v - yv : null) : yv ? fp(v / yv - 1) : "—"}</dd>
+      </dl></button>`;
+  }).join("");
+  const repIds = new Set(D.actions.map(a => a.alert_id));
+  const top = D.alerts.filter(a => repIds.has(a.alert_id));
+  const nP12 = D.alerts.filter(a => ["P1","P2"].includes(a.priority)).length;
+  const dqTop = D.dq.filter(q => q.priority === "P1");
+  const comments = D.comments || [];
+  return `<section class="panel">
+    ${dqTop.length ? `<div class="banner" role="status"><span class="chip p1">P1 データ品質</span><div><b>未着・不整合のデータがあります。</b>該当するKPIは暫定値で、業績アラートは判定を保留しています。<br><span class="muted">${dqTop.slice(0, 3).map(q => esc(q.message)).join("<br>")}</span> <button class="linkbtn" data-go="dq">データ品質を見る</button></div></div>` : ""}
+    <h2 class="sec">主要KPI <small>全社・${mlabel(TM)}。グラフは直近13か月。タイルを押すと原因分析へ</small></h2>
+    <div class="tiles">${tiles}</div>
+    <h2 class="sec">今月確認すべき事象 <small>${top.length}件。同じ事象で出た内訳別のアラートはまとめています（P1・P2 全${nP12}件はアラートタブ）</small></h2>
+    ${top.length ? `<div class="alist">${top.map(a => alertCard(a, D.actions.find(x => x.alert_id === a.alert_id))).join("")}</div>` : `<p class="empty">今月、P1・P2 の業績アラートはありません。</p>`}
+    <h2 class="sec">月次コメント <small>部門長・担当者の記入（事実／要因／対応）</small></h2>
+    ${comments.length ? `<div class="tablewrap"><table><thead><tr><th>KPI・内訳</th><th>記入者</th><th>事実</th><th>要因</th><th>対応</th></tr></thead><tbody>${comments.map(c =>
+      `<tr><td>${esc(KPI[c.kpi_id]?.name ?? c.kpi_id)}<br><span class="muted">${esc(scopeLabel(c.scope_key))}</span></td><td>${esc(c.author)}</td><td>${esc(c.fact)}</td><td>${esc(c.cause)}</td><td>${esc(c.action)}</td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="empty">コメントは未記入です（config/review の comments.csv、本番では Microsoft Lists から取り込み）。</p>`}
+  </section>`;
+}
+
+// ---------- アラートカード
+function alertCard(a, act) {
+  const sig = (a.signals || []);
+  const rel = act?.related_scopes?.length ? `<div class="ft">同時にアラートが出ている内訳：${act.related_scopes.map(esc).join("、")}</div>` : "";
+  const own = act ? `<span>担当：<b>${esc(act.owner)}</b>　期限：<b class="mono">${esc(act.due_date)}</b>　アクション：<b>${esc(act.status)}</b></span>` : "";
+  return `<article class="alert ${a.priority.toLowerCase()}">
+    <div class="hd">${chip(a.priority)}<span class="what">${esc(a.kpi_name)} · ${esc(a.scope_label)}</span>
+      <span class="chip">${esc(a.rule_label)}</span>${a.label ? `<span class="chip lbl">${esc(a.label)}</span>` : ""}
+      ${a.month !== TM ? `<span class="chip st-wait" title="成熟待ちのため直近の確定月で判定">${mlabel(a.month)}で判定</span>` : ""}</div>
+    <p class="msg">${esc(a.message)}</p>
+    ${sig.length ? `<ul>${sig.map(s => `<li>データから言えること：${esc(s)}</li>`).join("")}</ul>` : ""}
+    ${rel}
+    <div class="ft">${own}<span>確認状況：<b>${esc(a.review_status || "未確認")}</b>${a.review_comment ? `（${esc(a.reviewer)}：${esc(a.review_comment)}）` : ""}</span>
+      <button class="linkbtn" data-open="${esc(a.kpi_id)}|${esc(a.scope_key)}|${esc(a.month)}">原因分析で開く →</button></div>
+  </article>`;
+}
+
+function renderAlerts() {
+  const f = state.prio;
+  const list = D.alerts.filter(a => f === "all" ? true : f === "P1P2" ? ["P1","P2"].includes(a.priority) : a.priority === f);
+  const btn = (id, lab) => `<button aria-pressed="${f === id}" data-prio="${id}">${lab}</button>`;
+  return `<section class="panel">
+    <p class="lead">業績アラートは、目標未達・季節性を考慮した「平常の範囲外」の変化・連続悪化を、内訳ごとに判定しています。母数が小さい内訳、影響が小さい変化、データ未着の内訳は判定しません。原因は断定せず、前月差の分解から<b>データで言えること</b>だけを示します。</p>
+    <div class="filters"><div class="seg" role="group" aria-label="優先度で絞り込み">${btn("P1P2","P1・P2")}${btn("P3","P3 注視")}${btn("INFO","情報")}${btn("all","すべて")}</div>
+      <span class="muted" style="font-size:12px">${list.length}件</span></div>
+    ${list.length ? `<div class="alist">${list.map(a => alertCard(a)).join("")}</div>` : `<p class="empty">該当するアラートはありません。</p>`}
+  </section>`;
+}
+
+// ---------- アクション
+function renderActions() {
+  if (!D.actions.length) return `<section class="panel"><p class="empty">今月のアクション提案はありません。</p></section>`;
+  const hyp = h => `<li class="hyp"><span class="chip ${h.status === "データで示唆" ? "" : "lbl"}">${esc(h.status)}</span><span>${esc(h.text)}</span></li>`;
+  return `<section class="panel">
+    <p class="lead">P1・P2 のアラートごとに下書きを作っています。<b>事実</b>はデータで確認済みの数値、<b>仮説</b>は未検証の原因候補です。仮説が確認されるまでは「確認・調査」までにとどめています。担当者・期限・状態は、定例前に部門長が確認して修正します。</p>
+    <div class="acts">${D.actions.map(a => `<article class="act">
+      <div class="hd" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${chip(a.priority)}<span class="chip">${esc(a.status)}</span><span class="muted" style="font-size:12px">${esc(a.confidence)}</span></div>
+      <h3>${esc(a.title)}</h3>
+      <div class="blk"><span>事実（データで確認）</span><ul>${a.facts.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      ${a.signals.length ? `<div class="blk"><span>データから言えること</span><ul>${a.signals.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      ${a.hypotheses.length ? `<div class="blk"><span>原因の仮説</span><ul style="list-style:none;padding:0">${a.hypotheses.map(hyp).join("")}</ul></div>` : ""}
+      <div class="blk"><span>確認すること</span><ul>${a.checks.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      <div class="blk"><span>想定される影響</span><div>${esc(a.impact.text)}</div></div>
+      <div class="own"><div><span>担当</span>${esc(a.owner)}</div><div><span>確認者</span>${esc(a.manager)}</div><div><span>期限</span><span class="mono" style="color:var(--ink);font-size:12px">${esc(a.due_date)}</span></div></div>
+    </article>`).join("")}</div></section>`;
+}
+
+// ---------- データ品質
+function renderDQ() {
+  const srcs = ["quotes", "orders", "shipments", "defects"], SN = {quotes:"見積", orders:"受注", shipments:"出荷・納期", defects:"品質不良"};
+  const ents = Object.keys(DIMS.entity_code);
+  const miss = new Set(D.dq.filter(q => q.rule === "missing_file" && q.month === TM).map(q => q.source + "|" + q.entity));
+  const cell = (s, e) => {
+    const fl = D.file_log.filter(f => f.source === s && f.entity === e && f.month === TM && f.status === "loaded");
+    if (miss.has(s + "|" + e)) return `<span class="cell miss"><span class="s">✕ 未着</span><span class="muted">期限超過</span></span>`;
+    if (!fl.length) return `<span class="cell"><span class="s">—</span></span>`;
+    const late = fl.some(f => f.batch > 1);
+    const rows = fl.reduce((a, f) => a + f.rows, 0);
+    return `<span class="cell ${late ? "late" : "ok"}"><span class="s">${late ? "△ 遅れて到着" : "✓ 到着"}</span><span class="muted mono">${rows.toLocaleString("ja-JP")}行</span></span>`;
+  };
+  const issues = D.dq;
+  return `<section class="panel">
+    <p class="lead">取り込み時に、未着・列構成の変化・不正な行・重複・未登録コード・件数と金額の照合・過去値の修正を自動で検査しています。P1 のうち「停止」は数字を誤る恐れがあるため集計を止める項目です。</p>
+    <h2 class="sec">${mlabel(TM)}分の到着状況</h2>
+    <div class="tablewrap"><table class="matrix"><thead><tr><th>データ</th>${ents.map(e => `<th>${esc(DIMS.entity_code[e])}</th>`).join("")}</tr></thead>
+      <tbody>${srcs.map(s => `<tr><th style="text-align:left">${SN[s]}</th>${ents.map(e => `<td>${cell(s, e)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <h2 class="sec">検知した事項 <small>${issues.length}件</small></h2>
+    ${issues.length ? `<div class="tablewrap"><table><thead><tr><th>優先度</th><th>内容</th><th>データ</th><th>法人</th><th>月</th><th class="n">件数</th><th>詳細</th></tr></thead><tbody>
+      ${issues.map(q => `<tr><td>${chip(q.priority)}${q.blocking ? ` <span class="chip p1">停止</span>` : ""}</td><td>${esc(q.rule_label)}</td><td>${esc(SRC_JP[q.source] ?? KPI[q.source]?.name ?? q.source)}</td><td>${esc(q.entity)}</td><td class="mono">${esc(q.month)}</td><td class="n">${q.count || ""}</td><td>${esc(q.message)}${q.file ? `<br><span class="muted mono">${esc(q.file)}</span>` : ""}</td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="banner ok"><span>✓</span><div>今回の取り込みでデータ品質の問題は検知されませんでした。</div></div>`}
+    <h2 class="sec">過去値の修正ログ <small>前回の集計（${esc(D.restatements[0]?.prev_run_id || "なし")}）との差</small></h2>
+    ${D.restatements.length ? `<div class="tablewrap"><table><thead><tr><th>種類</th><th>KPI</th><th>内訳</th><th>月</th><th class="n">前回</th><th class="n">今回</th><th class="n">差</th></tr></thead><tbody>
+      ${D.restatements.slice(0, 60).map(r => `<tr><td>${esc(r.kind)}</td><td>${esc(r.kpi_name)}</td><td>${esc(r.scope_label)}</td><td class="mono">${esc(r.month)}</td><td class="n">${fv(r.kpi_id, r.prev_run_value)}</td><td class="n">${fv(r.kpi_id, r.value)}</td><td class="n">${KPI[r.kpi_id].display === "percent" ? fd(r.kpi_id, r.change) : fp(r.rel_change)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<p class="empty">前回の集計からの修正はありません。</p>`}
+    ${D.quarantine_summary.length ? `<h2 class="sec">隔離した行 <small>集計から除外（元ファイルは保管）</small></h2><div class="tablewrap"><table><thead><tr><th>データ</th><th>理由</th><th class="n">行数</th></tr></thead><tbody>${D.quarantine_summary.map(q => `<tr><td>${esc(SRC_JP[q.source] ?? q.source)}</td><td>${esc(q.reason)}</td><td class="n">${q.rows}</td></tr>`).join("")}</tbody></table></div>` : ""}
+  </section>`;
+}
+
+// ---------- KPI定義
+function renderDefs() {
+  const th = t => !t ? `<span class="muted">未設定（アラート判定なし）</span>` : Object.entries(t).map(([k, v]) => `${esc(k)}: ${esc(JSON.stringify(v))}`).join("<br>");
+  return `<section class="panel">
+    <p class="lead">KPIの定義は設定ファイル（config/kpis/*.yaml）で管理しています。状態が「provisional」の定義と閾値は仮の値で、実データ接続前に担当者の承認が必要です。</p>
+    <div class="tablewrap"><table><thead><tr><th>KPI</th><th>定義</th><th>種類・方向</th><th>状態</th><th>未確定の論点</th><th>閾値（${esc(D.thresholds_status)}）</th></tr></thead><tbody>
+    ${D.kpis.map(k => `<tr><td><b>${esc(k.name)}</b><br><span class="muted mono">${esc(k.id)} v${esc(k.version)}</span></td><td>${esc(k.description)}<br><span class="muted">担当: ${esc(k.owner_default)} / データ: ${esc((k.sources || []).join(", "))}${k.maturity_days ? ` / 成熟待ち ${k.maturity_days}日` : ""}</span></td>
+      <td>${k.type === "sum" ? "合計" : "比率（分子÷分母）"}<br>${k.direction === "higher_is_better" ? "高いほど良い" : "低いほど良い"}</td>
+      <td><span class="chip ${k.status === "approved" ? "" : "st-wait"}">${esc(k.status)}</span></td>
+      <td>${(k.open_questions || []).map(q => `・${esc(q)}`).join("<br>")}</td><td class="mono" style="font-size:11px">${th(k.thresholds)}</td></tr>`).join("")}
+    </tbody></table></div></section>`;
+}
+
+// ---------- 原因分析
+function filterOptions(dim) {
+  const cur = state.filt[dim] || "";
+  return `<option value="">すべて</option>` + Object.entries(DIMS[dim]).map(([v, n]) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(n)}</option>`).join("");
+}
+function scopeKey() {
+  const f = Object.entries(state.filt).filter(([, v]) => v);
+  if (!f.length) return {type: "total", key: "ALL"};
+  if (f.length === 1 && ["entity_code", "product_code"].includes(f[0][0])) return {type: f[0][0] === "entity_code" ? "entity" : "product", key: `${f[0][0]}=${f[0][1]}`};
+  const e = state.filt.entity_code, p = state.filt.product_code;
+  if (f.length === 2 && e && p) return {type: "entity_product", key: `entity_code=${e}|product_code=${p}`};
+  if (f.length === 1) { const [d, v] = f[0]; const t = {division_code:"division", team_code:"team", section_code:"section", industry:"industry", size_class:"size"}[d]; return {type: t, key: `${d}=${v}`}; }
+  return {type: null, key: null};
+}
+
+function renderAnalysis() {
+  const k = state.kpi, K = KPI[k], m = state.month, pm = prevM(m), ym = yoyM(m);
+  const filt = state.filt;
+  const byMonth = agg(k, MONTHS, filt, null);
+  const v = mm => val(k, byMonth.get("ALL|" + mm));
+  const sk = scopeKey();
+  const ser = sk.key ? SER.get(`${k}|${sk.key}|${m}`) : null;
+  const tgt = mm => sk.key ? TGT.get(`${k}|${mm}|${sk.key}`) ?? null : null;
+  const cur = v(m), prv = pm ? v(pm) : null, yoy = ym ? v(ym) : null;
+  const pct = K.display === "percent";
+  const kpiOpts = D.kpis.map(x => `<option value="${x.id}" ${x.id === k ? "selected" : ""}>${esc(x.name)}</option>`).join("");
+  const monOpts = M13.slice().reverse().map(x => `<option value="${x}" ${x === m ? "selected" : ""}>${mlabel(x)}</option>`).join("");
+  const byOpts = ["entity_code","product_code","division_code","team_code","section_code","industry","size_class","customer_id"]
+    .map(d => `<option value="${d}" ${d === state.by ? "selected" : ""}>${DIM_LABEL[d]}</option>`).join("");
+  const filterDims = ["entity_code","division_code","team_code","product_code","industry","size_class"];
+  const active = Object.entries(filt).filter(([, x]) => x);
+
+  // 内訳の寄与
+  let rowsHtml = "", contrib = [], note = "";
+  const by = state.by;
+  let seg;
+  if (by === "customer_id") {
+    if (![TM, prevM(TM)].includes(m)) note = "顧客別の内訳は直近2か月分のみ保持しています。";
+    else if (filt.industry || filt.size_class) note = "";
+    seg = aggCust(k, [m, pm], filt);
+  } else seg = agg(k, [m, pm], filt, by);
+  const keys = new Set([...seg.keys()].map(x => x.split("|")[0]));
+  const tot0 = {num:0, den:0}, tot1 = {num:0, den:0};
+  keys.forEach(s => { const a = seg.get(s + "|" + pm), b = seg.get(s + "|" + m); if (a) { tot0.num += a.num; tot0.den += a.den; } if (b) { tot1.num += b.num; tot1.den += b.den; } });
+  const R0 = K.type === "ratio" && tot0.den ? tot0.num / tot0.den : null;
+  let mixT = 0, rateT = 0;
+  keys.forEach(s => {
+    const a = seg.get(s + "|" + pm) || {num:0, den:0}, b = seg.get(s + "|" + m) || {num:0, den:0};
+    let c, mix = null, rate = null, v0 = val(k, a.den || a.num ? a : null), v1 = val(k, b.den || b.num ? b : null);
+    if (K.type === "sum") c = b.num - a.num;
+    else {
+      const r0 = a.den > 0 ? a.num / a.den : R0, r1 = b.den > 0 ? b.num / b.den : r0;
+      const w0 = tot0.den ? a.den / tot0.den : 0, w1 = tot1.den ? b.den / tot1.den : 0;
+      mix = (w1 - w0) * (r0 - R0); rate = w1 * (r1 - r0); c = mix + rate; mixT += mix; rateT += rate;
+    }
+    contrib.push({s, name: dimName(by, s), v0, v1, c, mix, rate, den: b.den, share: K.type === "sum" ? (tot1.num ? b.num / tot1.num : null) : (tot1.den ? b.den / tot1.den : null), isNew: !(a.num || a.den)});
+  });
+  const totalDelta = contrib.reduce((x, y) => x + (y.c || 0), 0);
+  contrib.sort((a, b) => Math.abs(b.c) - Math.abs(a.c));
+  if (by === "customer_id") contrib = contrib.slice(0, 15);
+  const minDen = K.thresholds?.min_denominator || 0;
+
+  // 件数・単価の分解（受注金額）
+  let drivers = "";
+  if (k === "order_amount" && pm) {
+    const cnt = agg("order_count", [m, pm], filt, null);
+    const n0 = cnt.get("ALL|" + pm)?.num, n1 = cnt.get("ALL|" + m)?.num;
+    if (n0 && n1 && prv != null && cur != null) {
+      const p0 = prv / n0, p1 = cur / n1;
+      drivers = `<div class="kv"><div><span>件数の変化による分</span><b class="num">${fd(k, (n1 - n0) * p0)}</b> <span class="muted">(${n0.toLocaleString()}→${n1.toLocaleString()}件)</span></div><div><span>単価の変化による分</span><b class="num">${fd(k, n1 * (p1 - p0))}</b> <span class="muted">(${fv(k, p0)}→${fv(k, p1)})</span></div></div>`;
+    }
+  }
+  if (K.type === "ratio" && pct && contrib.length > 1) {
+    drivers = `<div class="kv"><div><span>構成の変化による分</span><b class="num">${fd(k, mixT)}</b></div><div><span>各${DIM_LABEL[by]}の率の変化による分</span><b class="num">${fd(k, rateT)}</b></div></div>`;
+  }
+
+  rowsHtml = contrib.map(r => `<tr><td>${esc(r.name)}${r.isNew ? ` <span class="chip">新規</span>` : ""}${K.type === "ratio" && r.den < minDen ? ` <span class="chip st-wait" title="母数が小さく判定対象外">母数少</span>` : ""}</td>
+    <td class="n">${fv(k, r.v1)}</td><td class="n">${fv(k, r.v0)}</td><td class="n ${tone(k, r.v1 != null && r.v0 != null ? r.v1 - r.v0 : null)}">${r.v1 != null && r.v0 != null ? fd(k, r.v1 - r.v0) : "—"}</td>
+    <td class="n">${r.share != null ? (r.share * 100).toFixed(1) + "%" : "—"}</td><td class="n ${tone(k, r.c)}">${fd(k, r.c)}</td>
+    ${K.type === "ratio" && pct ? `<td class="n">${fd(k, r.mix)}</td><td class="n">${fd(k, r.rate)}</td>` : ""}</tr>`).join("");
+
+  const statusTxt = ser ? statusChip(ser.data_status) : "";
+  return `<section class="panel">
+    <div class="filters">
+      <label for="f-kpi">KPI<select id="f-kpi">${kpiOpts}</select></label>
+      <label for="f-month">対象月<select id="f-month">${monOpts}</select></label>
+      <label for="f-by">内訳<select id="f-by">${byOpts}</select></label>
+      ${filterDims.map(d => `<label for="f-${d}">${DIM_LABEL[d]}で絞り込み<select id="f-${d}" data-dim="${d}">${filterOptions(d)}</select></label>`).join("")}
+      ${active.length ? `<button class="linkbtn" id="f-reset" style="margin-bottom:6px">絞り込みを解除</button>` : ""}
+    </div>
+    <p class="summary-line"><span><b style="font-family:var(--font);font-weight:600">${esc(K.name)}</b> · ${active.length ? active.map(([d, x]) => esc(dimName(d, x))).join(" × ") : "全社"} · ${mlabel(m)} ${statusTxt}</span>
+      <span>当月 <b>${fv(k, cur)}</b></span><span>前月差 <b class="${tone(k, cur != null && prv != null ? cur - prv : null)}">${fd(k, cur != null && prv != null ? cur - prv : null)}</b></span>
+      ${!pct && prv ? `<span>前月比 <b>${fp(cur / prv - 1)}</b></span>` : ""}
+      <span>前年同月比 <b>${pct ? fd(k, cur != null && yoy != null ? cur - yoy : null) : yoy ? fp(cur / yoy - 1) : "—"}</b></span>
+      ${tgt(m) != null ? `<span>目標 <b>${fv(k, tgt(m))}</b>（${pct ? fd(k, cur - tgt(m)) : "達成率 " + (cur / tgt(m) * 100).toFixed(1) + "%"}）</span>` : ""}
+      ${ser?.baseline != null ? `<span title="季節性と直近3か月の傾向から見込んだ値">見込み <b>${fv(k, ser.baseline)}</b>（平常のばらつきの ${Math.abs(ser.z ?? 0).toFixed(1)} 倍）</span>` : ""}</p>
+    ${ser?.note ? `<p class="lead">${esc(ser.note)}</p>` : ""}
+    <div class="grid2">
+      <div class="card"><h3>13か月の推移</h3><p class="cap">当月・前年同月${M13.some(x => tgt(x) != null) ? "・目標" : ""}。${sk.key ? "" : "この絞り込みの組み合わせには目標が設定されていません。"}</p>
+        <div class="legend"><span><i style="border-color:var(--accent)"></i>実績</span><span><i style="border-color:var(--prior)"></i>前年同月</span>${M13.some(x => tgt(x) != null) ? `<span><i style="border-color:var(--ink-2);border-top-style:dashed"></i>目標</span>` : ""}</div>
+        <div class="chart" id="trend"></div></div>
+      <div class="card"><h3>前月からの変化の内訳（${DIM_LABEL[by]}別）</h3><p class="cap">${esc(mlabel(pm || m))} → ${esc(mlabel(m))}、合計 ${fd(k, totalDelta)}。${K.type === "ratio" ? "率の寄与＝構成の変化＋各内訳の率の変化。" : ""}青は改善、赤は悪化の方向。${note}</p>
+        ${drivers}<div class="chart" id="contrib"></div></div>
+    </div>
+    <h2 class="sec">${DIM_LABEL[by]}別の明細 <small>${by === "customer_id" ? "寄与の大きい上位15件" : ""}</small></h2>
+    <div class="tablewrap"><table><thead><tr><th>${DIM_LABEL[by]}</th><th class="n">当月</th><th class="n">前月</th><th class="n">前月差</th><th class="n">${K.type === "sum" ? "構成比" : "母数の構成比"}</th><th class="n">全体の変化への寄与</th>${K.type === "ratio" && pct ? `<th class="n">うち構成</th><th class="n">うち率</th>` : ""}</tr></thead>
+      <tbody>${rowsHtml || `<tr><td colspan="8" class="muted">データがありません</td></tr>`}</tbody></table></div>
+  </section>`;
+}
+
+function drawTrend() {
+  const el = $("#trend"); if (!el) return;
+  const k = state.kpi, filt = state.filt;
+  const byMonth = agg(k, MONTHS, filt, null);
+  const sk = scopeKey();
+  const pts = M13.map(m => ({m, v: val(k, byMonth.get("ALL|" + m)), y: yoyM(m) ? val(k, byMonth.get("ALL|" + yoyM(m))) : null,
+    t: sk.key ? TGT.get(`${k}|${m}|${sk.key}`) ?? null : null, st: sk.key ? SER.get(`${k}|${sk.key}|${m}`)?.data_status : null}));
+  const W = Math.max(el.clientWidth, 280), H = 220, L = 58, R = 12, T = 10, B = 26;
+  const all = pts.flatMap(p => [p.v, p.y, p.t]).filter(x => x != null);
+  if (!all.length) { el.innerHTML = `<p class="empty">データがありません</p>`; return; }
+  let lo = Math.min(...all), hi = Math.max(...all);
+  const padv = (hi - lo) * 0.12 || Math.abs(hi) * 0.1 || 1;
+  lo = KPI[k].type === "sum" ? Math.max(0, lo - padv) : lo - padv; hi += padv;
+  const x = i => L + i * (W - L - R) / (pts.length - 1), y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const ticks = 4, tv = [...Array(ticks + 1)].map((_, i) => lo + (hi - lo) * i / ticks);
+  const path = key => { let d = "", pen = false; pts.forEach((p, i) => { if (p[key] == null) { pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + "," + y(p[key]).toFixed(1); pen = true; }); return d; };
+  const fmtAxis = v => KPI[k].display === "percent" ? (v * 100).toFixed(1) + "%" : KPI[k].display === "yen" ? (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(1) + "億" : (v / 1e6).toFixed(0) + "百万") : Math.round(v).toLocaleString();
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(KPI[k].name)}の13か月推移">
+    <g class="grid">${tv.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`).join("")}</g>
+    ${tv.map(v => `<text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${fmtAxis(v)}</text>`).join("")}
+    ${pts.map((p, i) => (i % 2 === (pts.length - 1) % 2) ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${mshort(p.m)}</text>` : "").join("")}
+    <path d="${path("t")}" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <path d="${path("y")}" fill="none" stroke="var(--prior)" stroke-width="2"/>
+    <path d="${path("v")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+    ${pts.map((p, i) => p.v == null ? "" : `<circle cx="${x(i)}" cy="${y(p.v)}" r="${p.m === state.month ? 5 : 0}" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`).join("")}
+    <line id="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-width="1" visibility="hidden"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="hit"/></svg>`;
+  const svg = el.querySelector("svg"), xh = el.querySelector("#xh");
+  el.querySelector("#hit").addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round((px - L) / ((W - L - R) / (pts.length - 1))))); const p = pts[i];
+    xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible");
+    showTip(e, `<b>${mlabel(p.m)}</b>${p.st && p.st !== "OK" ? `（${esc(p.st)}）` : ""}<br>実績 ${fv(k, p.v)}<br>前年同月 ${fv(k, p.y)}${p.t != null ? `<br>目標 ${fv(k, p.t)}` : ""}`);
+  });
+  el.querySelector("#hit").addEventListener("mouseleave", () => { xh.setAttribute("visibility", "hidden"); hideTip(); });
+}
+
+function drawContrib() {
+  const el = $("#contrib"); if (!el) return;
+  const k = state.kpi, K = KPI[k], m = state.month, pm = prevM(m), by = state.by;
+  const seg = by === "customer_id" ? aggCust(k, [m, pm], state.filt) : agg(k, [m, pm], state.filt, by);
+  const keys = [...new Set([...seg.keys()].map(x => x.split("|")[0]))];
+  const t0 = {num:0, den:0}, t1 = {num:0, den:0};
+  keys.forEach(s => { const a = seg.get(s + "|" + pm), b = seg.get(s + "|" + m); if (a) { t0.num += a.num; t0.den += a.den; } if (b) { t1.num += b.num; t1.den += b.den; } });
+  const R0 = t0.den ? t0.num / t0.den : 0;
+  let rows = keys.map(s => {
+    const a = seg.get(s + "|" + pm) || {num:0, den:0}, b = seg.get(s + "|" + m) || {num:0, den:0};
+    if (K.type === "sum") return {s, c: b.num - a.num};
+    const r0 = a.den > 0 ? a.num / a.den : R0, r1 = b.den > 0 ? b.num / b.den : r0;
+    const w0 = t0.den ? a.den / t0.den : 0, w1 = t1.den ? b.den / t1.den : 0;
+    return {s, c: (w1 - w0) * (r0 - R0) + w1 * (r1 - r0), mix: (w1 - w0) * (r0 - R0), rate: w1 * (r1 - r0)};
+  }).sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, 10).sort((a, b) => a.c - b.c);
+  if (!rows.length) { el.innerHTML = `<p class="empty">前月と比較できるデータがありません</p>`; return; }
+  const W = Math.max(el.clientWidth, 280), rowH = 24, T = 4, H = rows.length * rowH + T + 18, LBL = Math.min(130, W * 0.34), R = 70;
+  const mx = Math.max(...rows.map(r => Math.abs(r.c)), 1e-12);
+  const x0 = LBL + (W - LBL - R) / 2, sc = (W - LBL - R) / 2 / mx;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="前月からの変化への寄与">
+    <line x1="${x0}" x2="${x0}" y1="${T}" y2="${H - 16}" stroke="var(--ink-3)" stroke-width="1"/>
+    ${rows.map((r, i) => {
+      const yy = T + i * rowH, w = Math.abs(r.c) * sc, isGood = good(k, r.c);
+      const bx = r.c >= 0 ? x0 : x0 - w; const col = r.c === 0 ? "var(--ink-3)" : isGood ? "var(--pos)" : "var(--neg)";
+      const name = dimName(by, r.s); const short = name.length > 10 ? name.slice(0, 10) + "…" : name;
+      return `<g class="bar" data-i="${i}"><rect x="0" y="${yy}" width="${W}" height="${rowH}" fill="transparent"/>
+        <text class="lab" x="${LBL - 8}" y="${yy + 15}" text-anchor="end">${esc(short)}</text>
+        <rect x="${bx}" y="${yy + 5}" width="${Math.max(w, 1)}" height="${rowH - 10}" rx="2" fill="${col}"/>
+        <text x="${r.c >= 0 ? bx + w + 5 : bx - 5}" y="${yy + 15}" text-anchor="${r.c >= 0 ? "start" : "end"}">${fd(k, r.c)}</text></g>`;
+    }).join("")}</svg>`;
+  el.querySelectorAll("g.bar").forEach(g => {
+    const r = rows[+g.dataset.i];
+    g.addEventListener("mousemove", e => showTip(e, `<b>${esc(dimName(by, r.s))}</b><br>寄与 ${fd(k, r.c)}${r.mix != null ? `<br>うち構成の変化 ${fd(k, r.mix)}<br>うち率の変化 ${fd(k, r.rate)}` : ""}`));
+    g.addEventListener("mouseleave", hideTip);
+  });
+}
+
+// ---------- 描画
+function render() {
+  renderTabs();
+  const main = $("#main");
+  main.innerHTML = {summary: renderSummary, analysis: renderAnalysis, alerts: renderAlerts, actions: renderActions, dq: renderDQ, defs: renderDefs}[state.tab]();
+  if (state.tab === "analysis") { drawTrend(); drawContrib(); }
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-kpi],[data-open],[data-go],[data-prio],#f-reset");
+  if (!t) return;
+  if (t.dataset.kpi) { state.kpi = t.dataset.kpi; state.filt = {}; state.month = TM; go("analysis"); }
+  else if (t.dataset.open) {
+    const [k, key, m] = t.dataset.open.split("|");
+    state.kpi = k; state.month = MONTHS.includes(m) ? m : TM; state.filt = {};
+    if (key !== "ALL") key.split("|").forEach(kv => { const [d, v] = kv.split("="); if (DIMS[d]) state.filt[d] = v; });
+    const f = Object.keys(state.filt);
+    state.by = f.includes("entity_code") && f.includes("product_code") ? "customer_id" : f.includes("entity_code") ? "product_code" : f.includes("product_code") ? "entity_code" : f.includes("section_code") ? "customer_id" : "entity_code";
+    if (state.filt.section_code) { state.by = "customer_id"; }
+    go("analysis");
+  }
+  else if (t.dataset.go) go(t.dataset.go);
+  else if (t.dataset.prio) { state.prio = t.dataset.prio; render(); }
+  else if (t.id === "f-reset") { state.filt = {}; render(); }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "f-kpi") state.kpi = t.value;
+  else if (t.id === "f-month") state.month = t.value;
+  else if (t.id === "f-by") state.by = t.value;
+  else if (t.dataset.dim) state.filt[t.dataset.dim] = t.value;
+  else return;
+  render();
+});
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (state.tab === "analysis") { drawTrend(); drawContrib(); } }, 120); });
+render();
+})();
+</script>

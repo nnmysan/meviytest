@@ -1,0 +1,12 @@
+id: S4
+name: 構成変化（各商品の率は不変、低採算の商品の比率が上昇）
+description: 2026-08 の板金溶接（粗利率が最も低い）の受注件数だけを 2 倍にする。各商品の粗利率は変えない。
+seed: 20260901
+effects:
+  - {type: demand, product: SWD, months: [2026-08], factor: 2.0}
+expect:
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: [gross_margin], scope_types: [total, product], months: [2026-08, 2026-08]}
+  - {check: alert, kpi: gross_margin, scope_key: ALL, rule: abnormal, min_priority: P2}
+  - {check: alert_field, kpi: gross_margin, scope_key: ALL, rule: abnormal, column: cause_type, equals: mix}
+  - {check: action, kpi: gross_margin, scope_key: ALL, verb: 確認, hypothesis_contains: 構成}

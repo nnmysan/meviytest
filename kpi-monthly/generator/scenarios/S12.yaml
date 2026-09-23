@@ -1,0 +1,13 @@
+id: S12
+name: 更新遅延（欧州の当月ファイルが期限後に到着）
+description: 欧州の 2026-08 以降のファイルが1回目の取込（9/8）に間に合わず、2回目（9/15）に届く。
+seed: 20260901
+effects:
+  - {type: delay_files, entity: EU, from_month: 2026-08}
+expect:
+  - {check: dq, run: 1, rule: missing_file, min_priority: P1}
+  - {check: field, run: 1, kpi: order_amount, scope_key: entity_code=EU, month: 2026-08, column: data_status, equals: 未着}
+  - {check: status, equals: ok}
+  - {check: truth_match, kpis: all, scope_types: [total, entity, product, entity_product], months: [2026-08, 2026-08]}
+  - {check: restatement, kpi: order_amount, scope_key: entity_code=EU, month: 2026-08, kind: 暫定値の確定}
+  - {check: dq, rule: late_arrival, min_priority: INFO}

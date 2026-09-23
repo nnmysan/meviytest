@@ -1,0 +1,19 @@
+id: gross_margin
+name: 粗利率
+status: provisional
+version: 1
+order: 4
+denominator_label: 受注金額
+description: 当月受注の（受注金額−原価）÷受注金額（取消を除く、予算レート換算）。原価は受注時点の見込み原価を仮定。
+type: ratio
+display: percent
+direction: higher_is_better
+view: v_order_lines
+numerator: SUM(gross_profit_jpy)
+denominator: SUM(amount_jpy)
+where: "status <> '取消'"
+sources: [orders]
+maturity_days: 0
+owner_default: 経営企画 担当（仮）
+open_questions:
+  - 受注時の見込み原価か出荷後の実際原価か（後者なら過去月が後から変わる）

@@ -1,0 +1,11 @@
+name: dummy
+is_dummy: true
+label: ダミーデータ（検証用）
+kpi_dir: config/kpis
+sources: config/sources/dummy/sources.yaml
+thresholds: config/thresholds/dummy/thresholds.yaml
+analysis: config/analysis.yaml
+action_templates: config/actions/templates.yaml
+holidays: config/calendar/holidays_jp.csv
+review_dir: config/review/dummy
+require_approved: false
