@@ -150,6 +150,33 @@ tbody tr:hover{background:var(--surface-2)}
 #tip b{font-weight:600}
 @media (prefers-reduced-motion:no-preference){.tile,.alert{transition:border-color .15s}}
 @media (max-width:560px){.wrap{padding-inline:16px} header.top h1{font-size:19px} .tile .val{font-size:22px}}
+/* 期間・ダウンロード・サプライヤ（追加） */
+:root{ --series2:#eb6834; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --series2:#d95926; } }
+:root[data-theme="dark"]{ --series2:#d95926; }
+.small{font-size:12px}
+.periodbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:4px 0 12px}
+.periodbar .inline{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--ink-3)}
+.periodbar select{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:4px 6px}
+.nohour{height:48px;display:flex;align-items:center}
+.dl{display:inline-flex;gap:4px;margin-left:auto}
+h2.sec .dl,h3 .dl{margin-left:10px}
+.card h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3 .dl{margin-left:auto}
+.dlbtn{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:1px 7px;font-size:11px;color:var(--ink-2);cursor:pointer;font-weight:500}
+.dlbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.tile.static{cursor:default}
+.tile.static .val{font-size:22px}
+.lbar{display:inline-block;position:relative;width:90px;height:8px;background:var(--surface-2);border-radius:4px;vertical-align:middle;margin-right:6px;overflow:hidden}
+.lbar span{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.lbar i{position:absolute;top:-2px;bottom:-2px;width:0;border-left:1.5px dashed var(--ink-2)}
+table.heat th,table.heat td{text-align:center;white-space:nowrap;font-size:12px;padding:6px 8px}
+table.heat tbody th{text-align:left;background:var(--surface)}
+td.hm{background:color-mix(in srgb, var(--accent) calc(var(--a) * 100%), var(--surface));font-family:var(--mono)}
+td.hm.warn{background:color-mix(in srgb, var(--serious) 55%, var(--surface));font-weight:600;color:var(--ink)}
+td.hm.crit{background:var(--crit);color:#fff;font-weight:600}
+td.empty-c{background:var(--surface)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:4px;font-size:13px;z-index:60}
 </style>
 
 <div id="dummy" class="dummy" hidden></div>
@@ -165,24 +192,43 @@ tbody tr:hover{background:var(--surface-2)}
   <main id="main"></main>
 </div>
 <div id="tip" hidden></div>
+<div id="toast" role="status" hidden></div>
 
 <script id="kpi-data" type="application/json">__DATA__</script>
 <script>
 (() => {
 "use strict";
 const D = JSON.parse(document.getElementById("kpi-data").textContent);
-const M = D.manifest, TM = M.target_month;
+const M = D.manifest, TM = M.target_month, END = M.data_end || M.as_of;
 const KPI = Object.fromEntries(D.kpis.map(k => [k.id, k]));
 const MONTHS = D.months, M13 = MONTHS.slice(-13);
 const DIMS = D.dims;
 const SEC = Object.fromEntries(D.org.map(o => [o.section_code, o]));
-const DIM_LABEL = {entity_code:"現地法人", product_code:"商品", division_code:"事業部", team_code:"チーム", section_code:"課", industry:"業種", size_class:"顧客規模", customer_id:"顧客"};
+const DIM_LABEL = {entity_code:"現地法人", product_code:"商品", division_code:"事業部", team_code:"チーム", section_code:"課", industry:"業種", size_class:"顧客規模", customer_id:"顧客",
+  supplier_code:"サプライヤ", material:"材質", part_size:"サイズ", surface:"表面処理", heat:"熱処理"};
+const DAILY_DIMS = ["entity_code", "product_code", "division_code", "team_code", "section_code"];
 const PRIO = {P1:1, P2:2, P3:3, INFO:4};
 const PRIO_LABEL = {P1:"P1 要対応", P2:"P2 要確認", P3:"P3 注視", INFO:"情報"};
+const WEEK = ["日","月","火","水","木","金","土"];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const $ = s => document.querySelector(s);
 
-// ---------- 細粒度データを列指向に（任意の絞り込みで分子・分母を合計してから割る）
+// ---------- 日付
+const dt = s => new Date(s + "T00:00:00Z");
+const ds = d => d.toISOString().slice(0, 10);
+const addDays = (s, n) => { const d = dt(s); d.setUTCDate(d.getUTCDate() + n); return ds(d); };
+const isWd = s => { const g = dt(s).getUTCDay(); return g > 0 && g < 6; };
+const weekStart = s => { const g = (dt(s).getUTCDay() + 6) % 7; return addDays(s, -g); };
+const daysBetween = (a, b) => { const out = []; for (let s = a; s <= b; s = addDays(s, 1)) out.push(s); return out; };
+const wdCount = (a, b) => daysBetween(a, b).filter(isWd).length;
+const monthEnd = m => { const d = dt(m + "-01"); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(0); return ds(d); };
+const wdMonth = m => wdCount(m + "-01", monthEnd(m));
+const dlabel = s => `${+s.slice(5, 7)}/${+s.slice(8)}（${WEEK[dt(s).getUTCDay()]}）`;
+const mlabel = m => `${m.slice(0,4)}年${+m.slice(5)}月`;
+const mshort = m => `${+m.slice(5)}月`;
+const CUR_M = END.slice(0, 7);
+
+// ---------- 月次の細粒度データ（任意の絞り込みで分子・分母を合計してから割る）
 const FC = D.fine_cols, F = {};
 FC.forEach((c, i) => F[c] = D.fine.map(r => r[i]));
 F.team_code = F.section_code.map(s => SEC[s]?.team_code ?? "UNK");
@@ -216,8 +262,7 @@ function aggCust(kid, months, filt) {
     let ok = true;
     for (const d in filt) {
       if (!filt[d]) continue;
-      let v = d === "team_code" ? SEC[C.section_code[i]]?.team_code : d === "division_code" ? SEC[C.section_code[i]]?.division_code : C[d]?.[i];
-      if (C[d] === undefined && !["team_code","division_code"].includes(d)) { ok = false; break; } // 業種・規模は顧客データで絞れない
+      const v = d === "team_code" ? SEC[C.section_code[i]]?.team_code : d === "division_code" ? SEC[C.section_code[i]]?.division_code : C[d]?.[i];
       if (v !== filt[d]) { ok = false; break; }
     }
     if (!ok) continue;
@@ -227,38 +272,81 @@ function aggCust(kid, months, filt) {
   }
   return out;
 }
+
+// ---------- 日別・時間別
+const DY = D.daily || {rows: [], days: [], kpis: [], ents: [], prds: [], secs: []};
+const DDAYS = DY.days;
+const DYA = {k: [], d: [], e: [], p: [], s: [], team: [], div: [], num: [], den: [], afx: []};
+DY.rows.forEach(r => {
+  const sec = DY.secs[r[4]];
+  DYA.k.push(DY.kpis[r[0]]); DYA.d.push(DDAYS[r[1]]); DYA.e.push(DY.ents[r[2]]); DYA.p.push(DY.prds[r[3]]); DYA.s.push(sec);
+  DYA.team.push(SEC[sec]?.team_code ?? "UNK"); DYA.div.push(SEC[sec]?.division_code ?? "UNK");
+  DYA.num.push(r[5] || 0); DYA.den.push(r[6] || 0); DYA.afx.push(r[7] || 0);
+});
+const DCOL = {entity_code: "e", product_code: "p", section_code: "s", team_code: "team", division_code: "div"};
+const HR = D.hourly || {rows: [], kpis: []};
+const HRA = HR.rows.map(r => ({k: DY.kpis[r[0]], d: DDAYS[r[1]], h: r[2], e: DY.ents[r[3]], p: DY.prds[r[4]], s: DY.secs[r[5]], num: r[6] || 0, den: r[7] || 0}));
+HRA.forEach(o => { o.team = SEC[o.s]?.team_code; o.div = SEC[o.s]?.division_code; });
+const dailyOk = filt => Object.entries(filt).every(([d, v]) => !v || DAILY_DIMS.includes(d));
+
+function aggDays(kid, days, filt, by) {
+  const out = new Map(); const set = new Set(days);
+  for (let i = 0; i < DYA.k.length; i++) {
+    if (DYA.k[i] !== kid || !set.has(DYA.d[i])) continue;
+    let ok = true;
+    for (const d in filt) if (filt[d] && DYA[DCOL[d]][i] !== filt[d]) { ok = false; break; }
+    if (!ok) continue;
+    const k = (by ? DYA[DCOL[by]][i] : "ALL");
+    const o = out.get(k) || {num:0, den:0, afx:0};
+    o.num += DYA.num[i]; o.den += DYA.den[i]; o.afx += DYA.afx[i]; out.set(k, o);
+  }
+  return out;
+}
+function aggHours(kid, day, filt) {
+  const out = Array.from({length: 24}, () => ({num: 0, den: 0}));
+  let any = false;
+  for (const o of HRA) {
+    if (o.k !== kid || o.d !== day) continue;
+    let ok = true;
+    for (const d in filt) if (filt[d] && o[DCOL[d]] !== filt[d]) { ok = false; break; }
+    if (!ok) continue;
+    out[o.h].num += o.num; out[o.h].den += o.den; any = true;
+  }
+  return any || HR.kpis.includes(kid) ? out : null;
+}
 const val = (k, o) => !o ? null : KPI[k].type === "sum" ? o.num : (o.den > 0 ? o.num / o.den : null);
-const prevM = m => MONTHS[MONTHS.indexOf(m) - 1];
-const yoyM = m => MONTHS[MONTHS.indexOf(m) - 12];
+const prevM = m => { const d = dt(m + "-01"); d.setUTCMonth(d.getUTCMonth() - 1); return ds(d).slice(0, 7); };
+const yoyMonth = m => `${+m.slice(0, 4) - 1}${m.slice(4)}`;
 const good = (k, d) => d == null ? null : (KPI[k].direction === "higher_is_better" ? d > 0 : d < 0);
 
 // ---------- 書式
 function fv(k, v) {
   if (v == null || Number.isNaN(v)) return "—";
-  const d = KPI[k].display;
-  if (d === "percent") return (v * 100).toFixed(KPI[k].id === "defect_rate" ? 2 : 1) + "%";
+  const d = KPI[k]?.display ?? "count";
+  if (d === "percent") return (v * 100).toFixed(k === "defect_rate" ? 2 : 1) + "%";
   if (d === "yen") return Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "億円" : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + "百万円" : Math.round(v).toLocaleString("ja-JP") + "円";
   return Math.round(v).toLocaleString("ja-JP") + "件";
 }
 function fd(k, d) {
   if (d == null || Number.isNaN(d)) return "—";
   const s = d > 0 ? "+" : d < 0 ? "−" : "±"; const a = Math.abs(d);
-  const disp = KPI[k].display;
-  if (disp === "percent") return s + (a * 100).toFixed(KPI[k].id === "defect_rate" ? 2 : 1) + "pt";
+  const disp = KPI[k]?.display ?? "count";
+  if (disp === "percent") return s + (a * 100).toFixed(k === "defect_rate" ? 2 : 1) + "pt";
   if (disp === "yen") return s + (a >= 1e8 ? (a / 1e8).toFixed(2) + "億円" : a >= 1e6 ? (a / 1e6).toFixed(1) + "百万円" : Math.round(a).toLocaleString("ja-JP") + "円");
   return s + Math.round(a).toLocaleString("ja-JP") + "件";
 }
 const fp = p => p == null || !isFinite(p) ? "—" : (p > 0 ? "+" : p < 0 ? "−" : "±") + Math.abs(p * 100).toFixed(1) + "%";
-const mlabel = m => `${m.slice(0,4)}年${+m.slice(5)}月`;
-const mshort = m => `${+m.slice(5)}月`;
-const dimName = (d, v) => v === "UNK" ? "未分類" : (DIMS[d]?.[v] ?? v);
+const pct = v => v == null || !isFinite(v) ? "—" : (v * 100).toFixed(0) + "%";
+const yen = v => v == null ? "—" : Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + "億円" : (v / 1e6).toFixed(1) + "百万円";
+const num = v => v == null ? "—" : Math.round(v).toLocaleString("ja-JP");
+const dimName = (d, v) => v === "UNK" ? "未分類" : v === "*" ? "全体" : (DIMS[d]?.[v] ?? v);
 const scopeLabel = key => !key || key === "ALL" ? "全社" : key.split("|").map(kv => { const [d, v] = kv.split("="); return dimName(d, v); }).join(" × ");
 const SRC_JP = {quotes:"見積", orders:"受注", shipments:"出荷・納期", defects:"品質不良"};
 const chip = p => `<span class="chip ${p.toLowerCase()}">${PRIO_LABEL[p] ?? p}</span>`;
 const tone = (k, d) => { const g = good(k, d); return g == null || d === 0 ? "" : g ? "good-t" : "bad-t"; };
 function statusChip(st) {
   if (!st || st === "OK") return "";
-  if (st === "成熟待ち") return `<span class="chip st-wait" title="直近月は確定待ち（受注・不良の発見が後から追加される）">成熟待ち</span>`;
+  if (st === "成熟待ち") return `<span class="chip st-wait" title="直近は確定待ち（受注・不良の発見が後から追加される）">成熟待ち</span>`;
   return `<span class="chip st-miss" title="データ未着のため暫定値">${esc(st)}</span>`;
 }
 
@@ -274,27 +362,165 @@ function moveTip(e) {
 }
 const hideTip = () => { tip.hidden = true; };
 
+// ---------- ダウンロード（CSV・Excel）。公開ページでは downloads 機能、手元のHTMLでは通常の保存
+const DL = new Map();
+let DLNS;
+async function saveFile(name, data) {
+  if (DLNS === undefined) DLNS = window.claude?.use ? await window.claude.use("downloads").catch(() => null) : null;
+  try {
+    if (DLNS) { await DLNS.save({filename: name, data}); toast(`${name} を保存しました`); return; }
+    const url = URL.createObjectURL(data instanceof Blob ? data : new Blob([data]));
+    const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch (e) {
+    toast(e?.code === "declined" ? "保存を取り消しました" : `保存できませんでした（${e?.code || e?.message || e}）`);
+  }
+}
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => { t.hidden = true; }, 3500); }
+const csvCell = v => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+const toCSV = (h, rows) => "﻿" + [h, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n");
+// 最小限の XLSX（無圧縮ZIP）。外部ライブラリなしで Excel で開ける .xlsx を作る
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zip(files) {
+  const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+  for (const [name, text] of files) {
+    const nb = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint32(14, crc, true);
+    h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nb.length, true);
+    parts.push(new Uint8Array(h.buffer), nb, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint32(16, crc, true);
+    c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nb.length, true); c.setUint32(42, off, true);
+    cen.push(new Uint8Array(c.buffer), nb);
+    off += 30 + nb.length + data.length;
+  }
+  const size = cen.reduce((a, b) => a + b.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, new Uint8Array(e.buffer)]);
+}
+function toXLSX(sheet, h, rows) {
+  const x = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+  const col = i => { let s = ""; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; };
+  const cell = (v, r, c) => typeof v === "number" && isFinite(v) ? `<c r="${col(c)}${r}"><v>${v}</v></c>` : v == null || v === "" ? "" : `<c r="${col(c)}${r}" t="inlineStr"><is><t>${x(v)}</t></is></c>`;
+  const sd = [h, ...rows].map((row, i) => `<row r="${i + 1}">${row.map((v, j) => cell(v, i + 1, j)).join("")}</row>`).join("");
+  const ns = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"', rns = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  return zip([
+    ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`],
+    ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+    ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook ${ns} ${rns}><sheets><sheet name="${x(sheet.slice(0, 31))}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+    ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`],
+    ["xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet ${ns}><sheetData>${sd}</sheetData></worksheet>`],
+  ]);
+}
+// 表やグラフに付けるダウンロードボタン。provider は {name, headers, rows} を返す（表示中の絞り込みを反映）
+function dlButtons(id, provider) {
+  DL.set(id, provider);
+  return `<span class="dl"><button class="dlbtn" data-dl="${id}" data-fmt="csv" title="表示中のデータをCSVで保存">CSV</button><button class="dlbtn" data-dl="${id}" data-fmt="xlsx" title="表示中のデータをExcelで保存">Excel</button></span>`;
+}
+function doDownload(id, fmt) {
+  const p = DL.get(id)?.(); if (!p) return;
+  const stamp = END.replace(/-/g, "");
+  if (fmt === "csv") saveFile(`${p.name}_${stamp}.csv`, new Blob([toCSV(p.headers, p.rows)], {type: "text/csv"}));
+  else saveFile(`${p.name}_${stamp}.xlsx`, toXLSX(p.name, p.headers, p.rows));
+}
+
 // ---------- 状態
-const state = {tab: "summary", kpi: D.kpis[0].id, month: TM, by: "entity_code", filt: {}, prio: "P1P2"};
-try { const s = JSON.parse(localStorage.getItem("kpiboard") || "{}"); if (s.tab) state.tab = s.tab; } catch (e) {}
-const save = () => { try { localStorage.setItem("kpiboard", JSON.stringify({tab: state.tab})); } catch (e) {} };
+const state = {tab: "summary", kpi: D.kpis[0].id, month: TM, by: "entity_code", filt: {}, prio: "P1P2", cat: "all",
+  period: "all", day: END, sfilt: {}, sby: "supplier_code", hrow: "supplier_code", hcol: "material"};
+try { const s = JSON.parse(localStorage.getItem("kpiboard") || "{}"); if (s.tab) state.tab = s.tab; if (s.period) state.period = s.period; } catch (e) {}
+const save = () => { try { localStorage.setItem("kpiboard", JSON.stringify({tab: state.tab, period: state.period})); } catch (e) {} };
+
+// ---------- 期間
+const PERIODS = [["all", "全期間"], ["6m", "半年"], ["3m", "四半期"], ["1m", "1ヶ月"], ["1w", "1週間"], ["1d", "1日"]];
+function periodDef(p) {
+  if (p === "all") {
+    const keys = [...MONTHS]; if (CUR_M > TM && !keys.includes(CUR_M)) keys.push(CUR_M);
+    return {grain: "month", keys, label: m => m === CUR_M && CUR_M > TM ? `${mshort(m)}（途中）` : mshort(m), full: mlabel};
+  }
+  if (p === "6m" || p === "3m") {
+    const n = p === "6m" ? 26 : 13, last = weekStart(END), keys = [];
+    for (let i = n - 1; i >= 0; i--) keys.push(addDays(last, -7 * i));
+    return {grain: "week", keys, label: w => `${+w.slice(5, 7)}/${+w.slice(8)}`, full: w => `${dlabel(w)}の週`};
+  }
+  if (p === "1m" || p === "1w") {
+    const n = p === "1m" ? 30 : 7, keys = [];
+    for (let i = n - 1; i >= 0; i--) keys.push(addDays(END, -i));
+    return {grain: "day", keys, label: d => `${+d.slice(5, 7)}/${+d.slice(8)}`, full: dlabel, cmp: d => addDays(d, -7), cmpLabel: "前週同曜日"};
+  }
+  return {grain: "hour", day: state.day, keys: [...Array(24).keys()], label: h => `${h}時`, full: h => `${dlabel(state.day)} ${h}時台`, cmpLabel: "前週同曜日"};
+}
+function daysOfBucket(grain, key) {
+  if (grain === "month") return daysBetween(key + "-01", key === CUR_M ? END : monthEnd(key));
+  if (grain === "week") return daysBetween(key, addDays(key, 6)).filter(d => d <= END);
+  return [key];
+}
+// バケットごとの値。月は締め月まで月次データ、当月途中・週・日は日別データ、時間は時間別データ
+function bucketVal(kid, grain, key, filt) {
+  if (grain === "month" && key <= TM && key !== CUR_M) return val(kid, agg(kid, [key], filt, null).get("ALL|" + key));
+  if (!dailyOk(filt)) return null;
+  const days = daysOfBucket(grain, key).filter(d => DDAYS.includes(d));
+  if (!days.length) return null;
+  return val(kid, aggDays(kid, days, filt, null).get("ALL"));
+}
+function scopeKeyOf(filt) {
+  const f = Object.entries(filt).filter(([, v]) => v);
+  if (!f.length) return "ALL";
+  if (f.length === 1 && ["entity_code", "product_code"].includes(f[0][0])) return `${f[0][0]}=${f[0][1]}`;
+  return null;
+}
+// 目標：月はそのまま。週・日は月の目標を平日数で日割り（率のKPIは月の目標をそのまま）
+function bucketTarget(kid, grain, key, filt) {
+  const sk = scopeKeyOf(filt); if (!sk) return null;
+  const k = KPI[kid];
+  const mt = m => TGT.get(`${kid}|${m}|${sk}`);
+  if (grain === "month") return mt(key) ?? null;
+  if (grain === "hour") return null;
+  const days = daysOfBucket(grain, key);
+  if (k.type !== "sum") { const t = mt(days[0].slice(0, 7)); return t ?? null; }
+  let t = 0, any = false;
+  for (const d of days) { const m = mt(d.slice(0, 7)); if (m == null) continue; any = true; if (isWd(d)) t += m / wdMonth(d.slice(0, 7)); }
+  return any ? t : null;
+}
+function bucketCmp(kid, def, key, filt) {
+  if (def.grain === "month") { const y = yoyMonth(key); return MONTHS.includes(y) ? val(kid, agg(kid, [y], filt, null).get("ALL|" + y)) : null; }
+  if (def.grain === "day") return def.cmp && dailyOk(filt) && DDAYS.includes(def.cmp(key)) ? val(kid, aggDays(kid, [def.cmp(key)], filt, null).get("ALL")) : null;
+  return null;
+}
+function periodSeries(kid, filt, p = state.period) {
+  const def = periodDef(p);
+  if (def.grain === "hour") {
+    const cur = aggHours(kid, def.day, filt), prev = aggHours(kid, addDays(def.day, -7), filt);
+    return {def, pts: def.keys.map(h => ({key: h, v: cur ? val(kid, cur[h]) ?? (KPI[kid].type === "sum" ? 0 : null) : null,
+      c: prev ? val(kid, prev[h]) ?? (KPI[kid].type === "sum" ? 0 : null) : null, t: null})), hourly: !!cur};
+  }
+  return {def, pts: def.keys.map(k => ({key: k, v: bucketVal(kid, def.grain, k, filt), c: bucketCmp(kid, def, k, filt), t: bucketTarget(kid, def.grain, k, filt)}))};
+}
+function periodSeg(id = "period") {
+  const def = periodDef(state.period);
+  const dayOpts = DDAYS.slice(-35).reverse().map(d => `<option value="${d}" ${d === state.day ? "selected" : ""}>${dlabel(d)}</option>`).join("");
+  return `<div class="periodbar"><div class="seg" role="group" aria-label="期間">${PERIODS.map(([k, l]) => `<button aria-pressed="${state.period === k}" data-period="${k}">${l}</button>`).join("")}</div>
+    ${state.period === "1d" ? `<label class="inline" for="f-day">日付 <select id="f-day">${dayOpts}</select></label>` : ""}
+    <span class="muted small">${{month: "月単位", week: "週単位（月曜始まり）", day: "日単位", hour: "時間単位（受注日時ベース）"}[def.grain]}・データは ${dlabel(END)} まで</span></div>`;
+}
 
 // ---------- ヘッダー
 if (M.is_dummy) {
   const d = $("#dummy"); d.hidden = false;
-  d.innerHTML = `<b>ダミーデータ（検証用）</b>　表示中の数値・顧客名・組織・目標はすべて架空です。KPI定義とアラート閾値は仮（${esc(D.thresholds_status)}）の値で、実際の判断基準ではありません。`;
+  d.innerHTML = `<b>ダミーデータ（検証用）</b>　表示中の数値・顧客名・サプライヤ・組織・目標はすべて架空です。KPI定義とアラート閾値は仮（${esc(D.thresholds_status)}）の値で、実際の判断基準ではありません。`;
 }
-$("#sub").textContent = `対象月 ${mlabel(TM)}　·　${M.profile_label ?? M.profile}`;
+$("#sub").textContent = `毎朝更新　·　データ ${dlabel(END)} まで　·　月次の締め ${mlabel(TM)}　·　${M.profile_label ?? M.profile}`;
 $("#meta").innerHTML = [
   ["取込日", M.as_of], ["集計版", M.run_id + (M.finalized ? "（確定）" : "（暫定）")], ["定例", M.meeting_date],
   ["設定", M.config_revision]].map(([a, b]) => `<span>${a} <b class="mono">${esc(b)}</b></span>`).join("");
 
-const bizAlerts = D.alerts.filter(a => a.priority !== "INFO" || true);
-const dqCount = D.dq.filter(q => ["P1","P2"].includes(q.priority)).length;
+const supAlerts = D.alerts.filter(a => a.category === "供給");
 const TABS = [
-  ["summary", "経営サマリー"], ["analysis", "原因分析"],
+  ["summary", "経営サマリー"], ["analysis", "原因分析"], ["supplier", "サプライヤ", supAlerts.filter(a => ["P1","P2"].includes(a.priority)).length],
   ["alerts", "アラート", D.alerts.filter(a => ["P1","P2"].includes(a.priority)).length],
-  ["actions", "アクション", D.actions.length], ["dq", "データ品質", dqCount], ["defs", "KPI定義"]];
+  ["actions", "アクション", D.actions.length], ["dq", "データ品質", D.dq.filter(q => ["P1","P2"].includes(q.priority)).length], ["defs", "KPI定義"]];
 function renderTabs() {
   $("#tabs").innerHTML = TABS.map(([id, name, n]) =>
     `<button role="tab" aria-selected="${state.tab === id}" data-tab="${id}">${name}${n ? `<span class="count">${n}</span>` : ""}</button>`).join("");
@@ -302,55 +528,71 @@ function renderTabs() {
 $("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) go(b.dataset.tab); });
 function go(tab) { state.tab = tab; save(); render(); window.scrollTo({top: 0}); }
 
-// ---------- 小さなグラフ
-function spark(k, vals, months) {
-  const W = 240, H = 44, pad = 4;
-  const pts = vals.map((v, i) => [i, v]).filter(p => p[1] != null);
-  if (pts.length < 2) return `<svg viewBox="0 0 ${W} ${H}"></svg>`;
-  const ys = pts.map(p => p[1]); let lo = Math.min(...ys), hi = Math.max(...ys);
-  if (hi === lo) { hi += 1; lo -= 1; }
-  const x = i => pad + i * (W - pad * 2) / (vals.length - 1);
+// ---------- 小さなグラフ（目標線つき）
+function spark(k, pts) {
+  const W = 240, H = 48, pad = 4;
+  const vs = pts.map(p => p.v), ts = pts.map(p => p.t);
+  const all = [...vs, ...ts].filter(v => v != null);
+  if (all.length < 2) return `<svg viewBox="0 0 ${W} ${H}"></svg>`;
+  let lo = Math.min(...all), hi = Math.max(...all);
+  if (hi === lo) { hi += Math.abs(hi) * 0.1 || 1; lo -= Math.abs(lo) * 0.1 || 1; }
+  const x = i => pad + i * (W - pad * 2) / Math.max(pts.length - 1, 1);
   const y = v => H - pad - (v - lo) / (hi - lo) * (H - pad * 2);
-  const line = pts.map((p, j) => (j ? "L" : "M") + x(p[0]).toFixed(1) + "," + y(p[1]).toFixed(1)).join("");
-  const area = line + `L${x(pts.at(-1)[0]).toFixed(1)},${H}L${x(pts[0][0]).toFixed(1)},${H}Z`;
-  const last = pts.at(-1);
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(KPI[k].name)}の直近13か月の推移">
+  const path = arr => { let d = "", pen = false; arr.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1); pen = true; }); return d; };
+  const line = path(vs);
+  const idx = vs.map((v, i) => [i, v]).filter(p => p[1] != null);
+  const area = idx.length > 1 ? line + `L${x(idx.at(-1)[0]).toFixed(1)},${H}L${x(idx[0][0]).toFixed(1)},${H}Z` : "";
+  const last = idx.at(-1);
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${esc(KPI[k].name)}の推移と目標">
     <path d="${area}" fill="var(--accent-soft)" stroke="none"/>
+    <path d="${path(ts)}" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>
     <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-    <circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/></svg>`;
+    ${last ? `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>` : ""}</svg>`;
 }
 
 // ---------- 経営サマリー
 function renderSummary() {
+  const def = periodDef(state.period);
   const tiles = D.kpis.map(k => {
-    const s = m => SER.get(`${k.id}|ALL|${m}`);
-    const cur = s(TM), prv = s(prevM(TM)), yoy = s(yoyM(TM));
-    const v = cur?.value, pv = prv?.value, yv = yoy?.value;
-    const d = v != null && pv != null ? v - pv : null;
-    const t = cur?.target;
+    const s = periodSeries(k.id, {});
+    const pts = s.pts;
+    let cur, prv, tgt, curLabel, prvLabel;
+    if (def.grain === "hour") {
+      cur = dailyOk({}) ? val(k.id, aggDays(k.id, [state.day], {}, null).get("ALL")) : null;
+      prv = val(k.id, aggDays(k.id, [addDays(state.day, -7)], {}, null).get("ALL"));
+      tgt = bucketTarget(k.id, "day", state.day, {}); curLabel = dlabel(state.day); prvLabel = "前週同曜日";
+    } else {
+      const li = pts.map(p => p.v != null).lastIndexOf(true);
+      cur = pts[li]?.v; tgt = pts[li]?.t; curLabel = li >= 0 ? def.full(pts[li].key) : "—";
+      prv = def.grain === "day" ? pts[li]?.c : pts[li - 1]?.v; prvLabel = def.grain === "day" ? "前週同曜日" : "前の" + {month: "月", week: "週"}[def.grain];
+    }
+    const d = cur != null && prv != null ? cur - prv : null;
+    const pctK = k.display === "percent";
     const worst = D.alerts.filter(a => a.kpi_id === k.id && a.scope_key === "ALL" && a.priority !== "INFO").sort((a, b) => PRIO[a.priority] - PRIO[b.priority])[0];
-    const pct = k.display === "percent";
+    const st = def.grain === "month" ? SER.get(`${k.id}|ALL|${pts.at(-1)?.key}`)?.data_status : (k.maturity_days ? "成熟待ち" : "");
+    const noHour = def.grain === "hour" && !s.hourly;
     return `<button class="tile" data-kpi="${k.id}" aria-label="${esc(k.name)}の原因分析を開く">
-      <div class="name"><span>${esc(k.name)}</span><span>${statusChip(cur?.data_status)} ${worst ? chip(worst.priority) : ""}</span></div>
-      <div class="val num">${fv(k.id, v)}</div>
-      ${spark(k.id, M13.map(m => s(m)?.value ?? null), M13)}
+      <div class="name"><span>${esc(k.name)}</span><span>${statusChip(st)} ${worst ? chip(worst.priority) : ""}</span></div>
+      <div class="val num">${fv(k.id, cur)}</div><div class="muted small">${esc(curLabel)}</div>
+      ${noHour ? `<div class="muted small nohour">時間別データなし（日の値のみ）</div>` : spark(k.id, pts)}
       <dl class="rows">
-        <dt>前月差</dt><dd class="${tone(k.id, d)}">${fd(k.id, d)}${!pct && pv ? `（${fp(v / pv - 1)}）` : ""}</dd>
-        <dt>目標</dt><dd>${t != null ? `${fv(k.id, t)}　<span class="${tone(k.id, v - t)}">${pct ? fd(k.id, v - t) : (v / t * 100).toFixed(0) + "%"}</span>` : "—"}</dd>
-        <dt>前年同月</dt><dd class="${tone(k.id, v != null && yv != null ? v - yv : null)}">${pct ? fd(k.id, v != null && yv != null ? v - yv : null) : yv ? fp(v / yv - 1) : "—"}</dd>
+        <dt>${prvLabel}比</dt><dd class="${tone(k.id, d)}">${fd(k.id, d)}${!pctK && prv ? `（${fp(cur / prv - 1)}）` : ""}</dd>
+        <dt>目標</dt><dd>${tgt != null && cur != null ? `${fv(k.id, tgt)}　<span class="${tone(k.id, cur - tgt)}">${pctK ? fd(k.id, cur - tgt) : (cur / tgt * 100).toFixed(0) + "%"}</span>` : "—"}</dd>
       </dl></button>`;
   }).join("");
   const repIds = new Set(D.actions.map(a => a.alert_id));
-  const top = D.alerts.filter(a => repIds.has(a.alert_id));
-  const nP12 = D.alerts.filter(a => ["P1","P2"].includes(a.priority)).length;
+  const top = D.alerts.filter(a => repIds.has(a.alert_id) && a.category !== "供給");
+  const supTop = D.alerts.filter(a => repIds.has(a.alert_id) && a.category === "供給");
   const dqTop = D.dq.filter(q => q.priority === "P1");
   const comments = D.comments || [];
   return `<section class="panel">
     ${dqTop.length ? `<div class="banner" role="status"><span class="chip p1">P1 データ品質</span><div><b>未着・不整合のデータがあります。</b>該当するKPIは暫定値で、業績アラートは判定を保留しています。<br><span class="muted">${dqTop.slice(0, 3).map(q => esc(q.message)).join("<br>")}</span> <button class="linkbtn" data-go="dq">データ品質を見る</button></div></div>` : ""}
-    <h2 class="sec">主要KPI <small>全社・${mlabel(TM)}。グラフは直近13か月。タイルを押すと原因分析へ</small></h2>
+    ${renderPace()}
+    <h2 class="sec">主要KPI <small>全社。グラフの点線は目標（週・日は月の目標を平日数で日割り）。タイルを押すと原因分析へ</small></h2>
+    ${periodSeg()}
     <div class="tiles">${tiles}</div>
-    <h2 class="sec">今月確認すべき事象 <small>${top.length}件。同じ事象で出た内訳別のアラートはまとめています（P1・P2 全${nP12}件はアラートタブ）</small></h2>
-    ${top.length ? `<div class="alist">${top.map(a => alertCard(a, D.actions.find(x => x.alert_id === a.alert_id))).join("")}</div>` : `<p class="empty">今月、P1・P2 の業績アラートはありません。</p>`}
+    <h2 class="sec">今月確認すべき事象 <small>${top.length + supTop.length}件。同じ事象の内訳別アラートはまとめています</small></h2>
+    ${top.length || supTop.length ? `<div class="alist">${[...top, ...supTop].map(a => alertCard(a, D.actions.find(x => x.alert_id === a.alert_id))).join("")}</div>` : `<p class="empty">今月、P1・P2 のアラートはありません。</p>`}
     <h2 class="sec">月次コメント <small>部門長・担当者の記入（事実／要因／対応）</small></h2>
     ${comments.length ? `<div class="tablewrap"><table><thead><tr><th>KPI・内訳</th><th>記入者</th><th>事実</th><th>要因</th><th>対応</th></tr></thead><tbody>${comments.map(c =>
       `<tr><td>${esc(KPI[c.kpi_id]?.name ?? c.kpi_id)}<br><span class="muted">${esc(scopeLabel(c.scope_key))}</span></td><td>${esc(c.author)}</td><td>${esc(c.fact)}</td><td>${esc(c.cause)}</td><td>${esc(c.action)}</td></tr>`).join("")}</tbody></table></div>`
@@ -358,32 +600,65 @@ function renderSummary() {
   </section>`;
 }
 
+function renderPace() {
+  const rows = (D.pace || []).filter(r => r.scope_key === "ALL");
+  if (!rows.length) return "";
+  const pa = D.alerts.filter(a => a.rule === "forecast");
+  const r0 = rows[0];
+  const body = rows.map(r => {
+    const k = KPI[r.kpi_id]; if (!k) return "";
+    const alert = pa.find(a => a.kpi_id === r.kpi_id && a.scope_key === "ALL");
+    if (k.type === "sum") {
+      const ach = r.achievement_forecast;
+      return `<tr><td>${esc(k.name)}</td><td class="n">${fv(r.kpi_id, r.mtd)}</td><td class="n">${fv(r.kpi_id, r.pace_target)}</td>
+        <td class="n">${fv(r.kpi_id, r.forecast)}</td><td class="n">${fv(r.kpi_id, r.target)}</td>
+        <td class="n ${ach != null && ach < 1 ? "bad-t" : "good-t"}">${ach != null ? (ach * 100).toFixed(0) + "%" : "—"}</td><td>${alert ? chip(alert.priority) : ""}</td></tr>`;
+    }
+    const gapOk = r.mature && r.mtd != null && r.target != null;
+    return `<tr><td>${esc(k.name)}</td><td class="n">${fv(r.kpi_id, r.mtd)}${r.mature ? "" : " " + statusChip("成熟待ち")}</td><td class="n muted">—</td><td class="n muted">${r.mature ? "（率）" : "—"}</td>
+      <td class="n">${fv(r.kpi_id, r.target)}</td><td class="n ${gapOk ? tone(r.kpi_id, r.mtd - r.target) : "muted"}">${gapOk ? fd(r.kpi_id, r.mtd - r.target) : "確定後に判定"}</td><td>${alert ? chip(alert.priority) : ""}</td></tr>`;
+  }).join("");
+  const dlId = "pace";
+  return `<h2 class="sec">${mlabel(r0.month)}の進捗 <small>${r0.bdays_elapsed}/${r0.bdays_total}営業日経過。着地見込みは単純な日割り（曜日・月末の偏りは考慮しない）</small>
+      ${dlButtons(dlId, () => ({name: "当月進捗", headers: ["KPI", "範囲", "当月累計", "目標ペース", "着地見込み", "月目標", "見込み達成率"],
+        rows: (D.pace || []).map(r => [KPI[r.kpi_id]?.name, r.scope_label, r.mtd, r.pace_target, r.forecast, r.target, r.achievement_forecast])}))}</h2>
+    ${(() => { const top = pa.filter(a => ["P1", "P2"].includes(a.priority)).sort((a, b) => PRIO[a.priority] - PRIO[b.priority] || (a.scope_key === "ALL" ? -1 : 1));
+      return top.length ? `<div class="alist" style="margin-bottom:10px">${top.slice(0, 4).map(a => alertCard(a)).join("")}</div>${top.length > 4 ? `<p class="muted small">ほか ${top.length - 4} 件の着地見込みアラートは <button class="linkbtn" data-go="alerts">アラートタブ</button> で確認できます。</p>` : ""}` : ""; })()}
+    <div class="tablewrap"><table><thead><tr><th>KPI（全社）</th><th class="n">当月累計</th><th class="n">目標ペース</th><th class="n">着地見込み</th><th class="n">月目標</th><th class="n">見込み達成率・目標差</th><th></th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
 // ---------- アラートカード
 function alertCard(a, act) {
   const sig = (a.signals || []);
   const rel = act?.related_scopes?.length ? `<div class="ft">同時にアラートが出ている内訳：${act.related_scopes.map(esc).join("、")}</div>` : "";
   const own = act ? `<span>担当：<b>${esc(act.owner)}</b>　期限：<b class="mono">${esc(act.due_date)}</b>　アクション：<b>${esc(act.status)}</b></span>` : "";
+  const open = a.category === "供給" ? `data-sopen="${esc(a.scope_key)}"` : `data-open="${esc(a.kpi_id)}|${esc(a.scope_key)}|${esc(a.month)}"`;
+  const prop = act?.proposals?.length ? `<ul>${act.proposals.map(p => `<li><b>打ち手（${esc(p.type)}）</b>：${esc(p.text)}</li>`).join("")}</ul>` : "";
   return `<article class="alert ${a.priority.toLowerCase()}">
     <div class="hd">${chip(a.priority)}<span class="what">${esc(a.kpi_name)} · ${esc(a.scope_label)}</span>
       <span class="chip">${esc(a.rule_label)}</span>${a.label ? `<span class="chip lbl">${esc(a.label)}</span>` : ""}
-      ${a.month !== TM ? `<span class="chip st-wait" title="成熟待ちのため直近の確定月で判定">${mlabel(a.month)}で判定</span>` : ""}</div>
+      ${a.category !== "供給" && a.rule !== "forecast" && a.month !== TM ? `<span class="chip st-wait" title="成熟待ちのため直近の確定月で判定">${mlabel(a.month)}で判定</span>` : ""}</div>
     <p class="msg">${esc(a.message)}</p>
     ${sig.length ? `<ul>${sig.map(s => `<li>データから言えること：${esc(s)}</li>`).join("")}</ul>` : ""}
-    ${rel}
+    ${prop}${rel}
     <div class="ft">${own}<span>確認状況：<b>${esc(a.review_status || "未確認")}</b>${a.review_comment ? `（${esc(a.reviewer)}：${esc(a.review_comment)}）` : ""}</span>
-      <button class="linkbtn" data-open="${esc(a.kpi_id)}|${esc(a.scope_key)}|${esc(a.month)}">原因分析で開く →</button></div>
+      <button class="linkbtn" ${open}>${a.category === "供給" ? "サプライヤ画面で開く →" : "原因分析で開く →"}</button></div>
   </article>`;
 }
 
 function renderAlerts() {
-  const f = state.prio;
-  const list = D.alerts.filter(a => f === "all" ? true : f === "P1P2" ? ["P1","P2"].includes(a.priority) : a.priority === f);
+  const f = state.prio, cat = state.cat;
+  const list = D.alerts.filter(a => (f === "all" ? true : f === "P1P2" ? ["P1","P2"].includes(a.priority) : a.priority === f) && (cat === "all" || a.category === cat));
   const btn = (id, lab) => `<button aria-pressed="${f === id}" data-prio="${id}">${lab}</button>`;
+  const cbtn = (id, lab) => `<button aria-pressed="${cat === id}" data-cat="${id}">${lab}</button>`;
   return `<section class="panel">
-    <p class="lead">業績アラートは、目標未達・季節性を考慮した「平常の範囲外」の変化・連続悪化を、内訳ごとに判定しています。母数が小さい内訳、影響が小さい変化、データ未着の内訳は判定しません。原因は断定せず、前月差の分解から<b>データで言えること</b>だけを示します。</p>
+    <p class="lead">業績アラートは、目標未達・季節性を考慮した「平常の範囲外」の変化・連続悪化・当月の着地見込みを内訳ごとに判定しています。供給アラートは、サプライヤの生産充足率（出荷÷供給能力）が80%を超えたものです。原因は断定せず、<b>データで言えること</b>だけを示します。</p>
     <div class="filters"><div class="seg" role="group" aria-label="優先度で絞り込み">${btn("P1P2","P1・P2")}${btn("P3","P3 注視")}${btn("INFO","情報")}${btn("all","すべて")}</div>
-      <span class="muted" style="font-size:12px">${list.length}件</span></div>
-    ${list.length ? `<div class="alist">${list.map(a => alertCard(a)).join("")}</div>` : `<p class="empty">該当するアラートはありません。</p>`}
+      <div class="seg" role="group" aria-label="種類で絞り込み">${cbtn("all","すべて")}${cbtn("業績","業績")}${cbtn("供給","供給")}</div>
+      <span class="muted" style="font-size:12px">${list.length}件</span>
+      ${dlButtons("alerts", () => ({name: "アラート", headers: ["優先度", "種類", "KPI", "内訳", "ルール", "月", "内容", "確認状況"],
+        rows: list.map(a => [a.priority, a.category, a.kpi_name, a.scope_label, a.rule_label, a.month, a.message, a.review_status])}))}</div>
+    ${list.length ? `<div class="alist">${list.map(a => alertCard(a, D.actions.find(x => x.alert_id === a.alert_id))).join("")}</div>` : `<p class="empty">該当するアラートはありません。</p>`}
   </section>`;
 }
 
@@ -392,14 +667,17 @@ function renderActions() {
   if (!D.actions.length) return `<section class="panel"><p class="empty">今月のアクション提案はありません。</p></section>`;
   const hyp = h => `<li class="hyp"><span class="chip ${h.status === "データで示唆" ? "" : "lbl"}">${esc(h.status)}</span><span>${esc(h.text)}</span></li>`;
   return `<section class="panel">
-    <p class="lead">P1・P2 のアラートごとに下書きを作っています。<b>事実</b>はデータで確認済みの数値、<b>仮説</b>は未検証の原因候補です。仮説が確認されるまでは「確認・調査」までにとどめています。担当者・期限・状態は、定例前に部門長が確認して修正します。</p>
+    <p class="lead">P1・P2 のアラートごとに下書きを作っています。<b>事実</b>はデータで確認済みの数値、<b>仮説</b>は未検証の原因候補です。仮説が確認されるまでは「確認・調査」までにとどめています。担当者・期限・状態は、部門長が確認して修正します。</p>
+    <div class="filters">${dlButtons("actions", () => ({name: "アクション", headers: ["優先度", "件名", "担当", "確認者", "期限", "状態", "事実", "打ち手・確認事項", "影響"],
+      rows: D.actions.map(a => [a.priority, a.title, a.owner, a.manager, a.due_date, a.status, a.facts.join(" / "), a.checks.join(" / "), a.impact?.text])}))}</div>
     <div class="acts">${D.actions.map(a => `<article class="act">
-      <div class="hd" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${chip(a.priority)}<span class="chip">${esc(a.status)}</span><span class="muted" style="font-size:12px">${esc(a.confidence)}</span></div>
+      <div class="hd" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${chip(a.priority)}<span class="chip">${esc(a.status)}</span>${a.category === "供給" ? `<span class="chip">供給</span>` : ""}<span class="muted" style="font-size:12px">${esc(a.confidence)}</span></div>
       <h3>${esc(a.title)}</h3>
       <div class="blk"><span>事実（データで確認）</span><ul>${a.facts.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
       ${a.signals.length ? `<div class="blk"><span>データから言えること</span><ul>${a.signals.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
+      ${a.proposals?.length ? `<div class="blk"><span>打ち手の候補</span><ul>${a.proposals.map(p => `<li><b>${esc(p.type)}</b>：${esc(p.text)}<br><span class="muted small">根拠：${esc(p.basis)}</span></li>`).join("")}</ul></div>` : ""}
       ${a.hypotheses.length ? `<div class="blk"><span>原因の仮説</span><ul style="list-style:none;padding:0">${a.hypotheses.map(hyp).join("")}</ul></div>` : ""}
-      <div class="blk"><span>確認すること</span><ul>${a.checks.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      ${a.proposals?.length ? "" : `<div class="blk"><span>確認すること</span><ul>${a.checks.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`}
       <div class="blk"><span>想定される影響</span><div>${esc(a.impact.text)}</div></div>
       <div class="own"><div><span>担当</span>${esc(a.owner)}</div><div><span>確認者</span>${esc(a.manager)}</div><div><span>期限</span><span class="mono" style="color:var(--ink);font-size:12px">${esc(a.due_date)}</span></div></div>
     </article>`).join("")}</div></section>`;
@@ -407,7 +685,7 @@ function renderActions() {
 
 // ---------- データ品質
 function renderDQ() {
-  const srcs = ["quotes", "orders", "shipments", "defects"], SN = {quotes:"見積", orders:"受注", shipments:"出荷・納期", defects:"品質不良"};
+  const srcs = ["quotes", "orders", "shipments", "defects"];
   const ents = Object.keys(DIMS.entity_code);
   const miss = new Set(D.dq.filter(q => q.rule === "missing_file" && q.month === TM).map(q => q.source + "|" + q.entity));
   const cell = (s, e) => {
@@ -423,8 +701,9 @@ function renderDQ() {
     <p class="lead">取り込み時に、未着・列構成の変化・不正な行・重複・未登録コード・件数と金額の照合・過去値の修正を自動で検査しています。P1 のうち「停止」は数字を誤る恐れがあるため集計を止める項目です。</p>
     <h2 class="sec">${mlabel(TM)}分の到着状況</h2>
     <div class="tablewrap"><table class="matrix"><thead><tr><th>データ</th>${ents.map(e => `<th>${esc(DIMS.entity_code[e])}</th>`).join("")}</tr></thead>
-      <tbody>${srcs.map(s => `<tr><th style="text-align:left">${SN[s]}</th>${ents.map(e => `<td>${cell(s, e)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
-    <h2 class="sec">検知した事項 <small>${issues.length}件</small></h2>
+      <tbody>${srcs.map(s => `<tr><th style="text-align:left">${SRC_JP[s]}</th>${ents.map(e => `<td>${cell(s, e)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+    <h2 class="sec">検知した事項 <small>${issues.length}件</small>${dlButtons("dq", () => ({name: "データ品質", headers: ["優先度", "停止", "内容", "データ", "法人", "月", "件数", "詳細", "ファイル"],
+      rows: issues.map(q => [q.priority, q.blocking ? "停止" : "", q.rule_label, SRC_JP[q.source] ?? q.source, q.entity, q.month, q.count, q.message, q.file])}))}</h2>
     ${issues.length ? `<div class="tablewrap"><table><thead><tr><th>優先度</th><th>内容</th><th>データ</th><th>法人</th><th>月</th><th class="n">件数</th><th>詳細</th></tr></thead><tbody>
       ${issues.map(q => `<tr><td>${chip(q.priority)}${q.blocking ? ` <span class="chip p1">停止</span>` : ""}</td><td>${esc(q.rule_label)}</td><td>${esc(SRC_JP[q.source] ?? KPI[q.source]?.name ?? q.source)}</td><td>${esc(q.entity)}</td><td class="mono">${esc(q.month)}</td><td class="n">${q.count || ""}</td><td>${esc(q.message)}${q.file ? `<br><span class="muted mono">${esc(q.file)}</span>` : ""}</td></tr>`).join("")}
     </tbody></table></div>` : `<div class="banner ok"><span>✓</span><div>今回の取り込みでデータ品質の問題は検知されませんでした。</div></div>`}
@@ -439,6 +718,7 @@ function renderDQ() {
 // ---------- KPI定義
 function renderDefs() {
   const th = t => !t ? `<span class="muted">未設定（アラート判定なし）</span>` : Object.entries(t).map(([k, v]) => `${esc(k)}: ${esc(JSON.stringify(v))}`).join("<br>");
+  const sth = D.sup?.threshold;
   return `<section class="panel">
     <p class="lead">KPIの定義は設定ファイル（config/kpis/*.yaml）で管理しています。状態が「provisional」の定義と閾値は仮の値で、実データ接続前に担当者の承認が必要です。</p>
     <div class="tablewrap"><table><thead><tr><th>KPI</th><th>定義</th><th>種類・方向</th><th>状態</th><th>未確定の論点</th><th>閾値（${esc(D.thresholds_status)}）</th></tr></thead><tbody>
@@ -446,227 +726,414 @@ function renderDefs() {
       <td>${k.type === "sum" ? "合計" : "比率（分子÷分母）"}<br>${k.direction === "higher_is_better" ? "高いほど良い" : "低いほど良い"}</td>
       <td><span class="chip ${k.status === "approved" ? "" : "st-wait"}">${esc(k.status)}</span></td>
       <td>${(k.open_questions || []).map(q => `・${esc(q)}`).join("<br>")}</td><td class="mono" style="font-size:11px">${th(k.thresholds)}</td></tr>`).join("")}
+    ${sth ? `<tr><td><b>生産充足率</b><br><span class="muted mono">supplier_load</span></td><td>出荷日ベースの出荷明細数（数量）÷（サプライヤ×材質×サイズ×表面処理×熱処理ごとの日あたり供給能力 × 平日数）。未出荷は納期（超過分は取込日）に計上。締め月・当月累計・今後${sth.forward_business_days}営業日の3つの観点で判定。</td>
+      <td>比率<br>低いほど余裕（目標 ${(sth.target_load * 100).toFixed(0)}% 以下）</td><td><span class="chip st-wait">provisional</span></td><td>・供給能力マスタの更新方法と頻度<br>・法人別の稼働カレンダー</td><td class="mono" style="font-size:11px">${th(sth)}</td></tr>` : ""}
     </tbody></table></div></section>`;
 }
 
 // ---------- 原因分析
-function filterOptions(dim) {
-  const cur = state.filt[dim] || "";
-  return `<option value="">すべて</option>` + Object.entries(DIMS[dim]).map(([v, n]) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(n)}</option>`).join("");
+function filterOptions(dim, cur, dict) {
+  return `<option value="">すべて</option>` + Object.entries(dict || DIMS[dim]).map(([v, n]) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(n)}</option>`).join("");
 }
-function scopeKey() {
-  const f = Object.entries(state.filt).filter(([, v]) => v);
-  if (!f.length) return {type: "total", key: "ALL"};
-  if (f.length === 1 && ["entity_code", "product_code"].includes(f[0][0])) return {type: f[0][0] === "entity_code" ? "entity" : "product", key: `${f[0][0]}=${f[0][1]}`};
-  const e = state.filt.entity_code, p = state.filt.product_code;
-  if (f.length === 2 && e && p) return {type: "entity_product", key: `entity_code=${e}|product_code=${p}`};
-  if (f.length === 1) { const [d, v] = f[0]; const t = {division_code:"division", team_code:"team", section_code:"section", industry:"industry", size_class:"size"}[d]; return {type: t, key: `${d}=${v}`}; }
-  return {type: null, key: null};
-}
-
 function renderAnalysis() {
-  const k = state.kpi, K = KPI[k], m = state.month, pm = prevM(m), ym = yoyM(m);
+  const k = state.kpi, K = KPI[k];
   const filt = state.filt;
-  const byMonth = agg(k, MONTHS, filt, null);
-  const v = mm => val(k, byMonth.get("ALL|" + mm));
-  const sk = scopeKey();
-  const ser = sk.key ? SER.get(`${k}|${sk.key}|${m}`) : null;
-  const tgt = mm => sk.key ? TGT.get(`${k}|${mm}|${sk.key}`) ?? null : null;
-  const cur = v(m), prv = pm ? v(pm) : null, yoy = ym ? v(ym) : null;
-  const pct = K.display === "percent";
+  const def = periodDef(state.period);
   const kpiOpts = D.kpis.map(x => `<option value="${x.id}" ${x.id === k ? "selected" : ""}>${esc(x.name)}</option>`).join("");
-  const monOpts = M13.slice().reverse().map(x => `<option value="${x}" ${x === m ? "selected" : ""}>${mlabel(x)}</option>`).join("");
-  const byOpts = ["entity_code","product_code","division_code","team_code","section_code","industry","size_class","customer_id"]
-    .map(d => `<option value="${d}" ${d === state.by ? "selected" : ""}>${DIM_LABEL[d]}</option>`).join("");
+  const monOpts = M13.slice().reverse().map(x => `<option value="${x}" ${x === state.month ? "selected" : ""}>${mlabel(x)}</option>`).join("");
+  const monthly = def.grain === "month";
+  const byList = monthly ? ["entity_code","product_code","division_code","team_code","section_code","industry","size_class","customer_id"] : DAILY_DIMS;
+  if (!byList.includes(state.by)) state.by = "entity_code";
+  const byOpts = byList.map(d => `<option value="${d}" ${d === state.by ? "selected" : ""}>${DIM_LABEL[d]}</option>`).join("");
   const filterDims = ["entity_code","division_code","team_code","product_code","industry","size_class"];
   const active = Object.entries(filt).filter(([, x]) => x);
+  const pctK = K.display === "percent";
+  const note = !monthly && !dailyOk(filt) ? `<p class="lead bad-t">業種・顧客規模の絞り込みは月単位（全期間）でのみ使えます。日・週・時間の表示では解除してください。</p>` : "";
 
-  // 内訳の寄与
-  let rowsHtml = "", contrib = [], note = "";
-  const by = state.by;
-  let seg;
-  if (by === "customer_id") {
-    if (![TM, prevM(TM)].includes(m)) note = "顧客別の内訳は直近2か月分のみ保持しています。";
-    else if (filt.industry || filt.size_class) note = "";
-    seg = aggCust(k, [m, pm], filt);
-  } else seg = agg(k, [m, pm], filt, by);
-  const keys = new Set([...seg.keys()].map(x => x.split("|")[0]));
-  const tot0 = {num:0, den:0}, tot1 = {num:0, den:0};
-  keys.forEach(s => { const a = seg.get(s + "|" + pm), b = seg.get(s + "|" + m); if (a) { tot0.num += a.num; tot0.den += a.den; } if (b) { tot1.num += b.num; tot1.den += b.den; } });
+  // 比較の窓：月＝選択月と前月。それ以外＝期間全体と、その直前の同じ長さの期間（1日＝前週同曜日）
+  let curDays, prvDays, curLabel, prvLabel, seg, tot0, tot1;
+  if (monthly) {
+    const m = state.month, pm = prevM(m);
+    curLabel = mlabel(m); prvLabel = mlabel(pm);
+    seg = state.by === "customer_id" ? aggCust(k, [m, pm], filt) : agg(k, [m, pm], filt, state.by);
+    const get = (s, mm) => seg.get(s + "|" + mm);
+    seg = new Map([...new Set([...seg.keys()].map(x => x.split("|")[0]))].map(s => [s, [get(s, pm), get(s, m)]]));
+  } else {
+    if (def.grain === "hour") { curDays = [state.day]; prvDays = [addDays(state.day, -7)]; curLabel = dlabel(state.day); prvLabel = "前週同曜日"; }
+    else {
+      const first = def.grain === "week" ? def.keys[0] : def.keys[0];
+      const last = END; curDays = daysBetween(first, last); const n = curDays.length;
+      prvDays = daysBetween(addDays(first, -n), addDays(first, -1));
+      curLabel = `${dlabel(first)}〜${dlabel(last)}`; prvLabel = `直前の同じ期間（${dlabel(prvDays[0])}〜）`;
+    }
+    const a = dailyOk(filt) ? aggDays(k, prvDays, filt, state.by) : new Map(), b = dailyOk(filt) ? aggDays(k, curDays, filt, state.by) : new Map();
+    seg = new Map([...new Set([...a.keys(), ...b.keys()])].map(s => [s, [a.get(s), b.get(s)]]));
+  }
+  tot0 = {num: 0, den: 0}; tot1 = {num: 0, den: 0};
+  seg.forEach(([a, b]) => { if (a) { tot0.num += a.num; tot0.den += a.den; } if (b) { tot1.num += b.num; tot1.den += b.den; } });
+  const cur = val(k, tot1), prv = val(k, tot0);
   const R0 = K.type === "ratio" && tot0.den ? tot0.num / tot0.den : null;
-  let mixT = 0, rateT = 0;
-  keys.forEach(s => {
-    const a = seg.get(s + "|" + pm) || {num:0, den:0}, b = seg.get(s + "|" + m) || {num:0, den:0};
-    let c, mix = null, rate = null, v0 = val(k, a.den || a.num ? a : null), v1 = val(k, b.den || b.num ? b : null);
+  let mixT = 0, rateT = 0, contrib = [];
+  seg.forEach(([a0, b0], s) => {
+    const a = a0 || {num:0, den:0}, b = b0 || {num:0, den:0};
+    let c, mix = null, rate = null;
     if (K.type === "sum") c = b.num - a.num;
     else {
       const r0 = a.den > 0 ? a.num / a.den : R0, r1 = b.den > 0 ? b.num / b.den : r0;
       const w0 = tot0.den ? a.den / tot0.den : 0, w1 = tot1.den ? b.den / tot1.den : 0;
       mix = (w1 - w0) * (r0 - R0); rate = w1 * (r1 - r0); c = mix + rate; mixT += mix; rateT += rate;
     }
-    contrib.push({s, name: dimName(by, s), v0, v1, c, mix, rate, den: b.den, share: K.type === "sum" ? (tot1.num ? b.num / tot1.num : null) : (tot1.den ? b.den / tot1.den : null), isNew: !(a.num || a.den)});
+    contrib.push({s, name: dimName(state.by, s), v0: a.num || a.den ? val(k, a) : null, v1: b.num || b.den ? val(k, b) : null, c, mix, rate, den: b.den,
+      share: K.type === "sum" ? (tot1.num ? b.num / tot1.num : null) : (tot1.den ? b.den / tot1.den : null), isNew: !(a.num || a.den)});
   });
   const totalDelta = contrib.reduce((x, y) => x + (y.c || 0), 0);
   contrib.sort((a, b) => Math.abs(b.c) - Math.abs(a.c));
-  if (by === "customer_id") contrib = contrib.slice(0, 15);
+  if (state.by === "customer_id") contrib = contrib.slice(0, 15);
+  state._contrib = contrib;
   const minDen = K.thresholds?.min_denominator || 0;
-
-  // 件数・単価の分解（受注金額）
-  let drivers = "";
-  if (k === "order_amount" && pm) {
-    const cnt = agg("order_count", [m, pm], filt, null);
-    const n0 = cnt.get("ALL|" + pm)?.num, n1 = cnt.get("ALL|" + m)?.num;
-    if (n0 && n1 && prv != null && cur != null) {
-      const p0 = prv / n0, p1 = cur / n1;
-      drivers = `<div class="kv"><div><span>件数の変化による分</span><b class="num">${fd(k, (n1 - n0) * p0)}</b> <span class="muted">(${n0.toLocaleString()}→${n1.toLocaleString()}件)</span></div><div><span>単価の変化による分</span><b class="num">${fd(k, n1 * (p1 - p0))}</b> <span class="muted">(${fv(k, p0)}→${fv(k, p1)})</span></div></div>`;
-    }
-  }
-  if (K.type === "ratio" && pct && contrib.length > 1) {
-    drivers = `<div class="kv"><div><span>構成の変化による分</span><b class="num">${fd(k, mixT)}</b></div><div><span>各${DIM_LABEL[by]}の率の変化による分</span><b class="num">${fd(k, rateT)}</b></div></div>`;
-  }
-
-  rowsHtml = contrib.map(r => `<tr><td>${esc(r.name)}${r.isNew ? ` <span class="chip">新規</span>` : ""}${K.type === "ratio" && r.den < minDen ? ` <span class="chip st-wait" title="母数が小さく判定対象外">母数少</span>` : ""}</td>
+  const sk = scopeKeyOf(filt);
+  const ser = monthly && sk ? SER.get(`${k}|${sk}|${state.month}`) : null;
+  const drivers = K.type === "ratio" && pctK && contrib.length > 1
+    ? `<div class="kv"><div><span>構成の変化による分</span><b class="num">${fd(k, mixT)}</b></div><div><span>各${DIM_LABEL[state.by]}の率の変化による分</span><b class="num">${fd(k, rateT)}</b></div></div>` : "";
+  const rowsHtml = contrib.map(r => `<tr><td>${esc(r.name)}${r.isNew ? ` <span class="chip">新規</span>` : ""}${K.type === "ratio" && r.den < minDen && monthly ? ` <span class="chip st-wait" title="母数が小さく判定対象外">母数少</span>` : ""}</td>
     <td class="n">${fv(k, r.v1)}</td><td class="n">${fv(k, r.v0)}</td><td class="n ${tone(k, r.v1 != null && r.v0 != null ? r.v1 - r.v0 : null)}">${r.v1 != null && r.v0 != null ? fd(k, r.v1 - r.v0) : "—"}</td>
     <td class="n">${r.share != null ? (r.share * 100).toFixed(1) + "%" : "—"}</td><td class="n ${tone(k, r.c)}">${fd(k, r.c)}</td>
-    ${K.type === "ratio" && pct ? `<td class="n">${fd(k, r.mix)}</td><td class="n">${fd(k, r.rate)}</td>` : ""}</tr>`).join("");
-
-  const statusTxt = ser ? statusChip(ser.data_status) : "";
+    ${K.type === "ratio" && pctK ? `<td class="n">${fd(k, r.mix)}</td><td class="n">${fd(k, r.rate)}</td>` : ""}</tr>`).join("");
+  const s = periodSeries(k, filt);
+  state._series = s;
   return `<section class="panel">
+    ${periodSeg()}
     <div class="filters">
       <label for="f-kpi">KPI<select id="f-kpi">${kpiOpts}</select></label>
-      <label for="f-month">対象月<select id="f-month">${monOpts}</select></label>
+      ${monthly ? `<label for="f-month">比較する月<select id="f-month">${monOpts}</select></label>` : ""}
       <label for="f-by">内訳<select id="f-by">${byOpts}</select></label>
-      ${filterDims.map(d => `<label for="f-${d}">${DIM_LABEL[d]}で絞り込み<select id="f-${d}" data-dim="${d}">${filterOptions(d)}</select></label>`).join("")}
+      ${filterDims.map(d => `<label for="f-${d}">${DIM_LABEL[d]}<select id="f-${d}" data-dim="${d}">${filterOptions(d, filt[d])}</select></label>`).join("")}
       ${active.length ? `<button class="linkbtn" id="f-reset" style="margin-bottom:6px">絞り込みを解除</button>` : ""}
-    </div>
-    <p class="summary-line"><span><b style="font-family:var(--font);font-weight:600">${esc(K.name)}</b> · ${active.length ? active.map(([d, x]) => esc(dimName(d, x))).join(" × ") : "全社"} · ${mlabel(m)} ${statusTxt}</span>
-      <span>当月 <b>${fv(k, cur)}</b></span><span>前月差 <b class="${tone(k, cur != null && prv != null ? cur - prv : null)}">${fd(k, cur != null && prv != null ? cur - prv : null)}</b></span>
-      ${!pct && prv ? `<span>前月比 <b>${fp(cur / prv - 1)}</b></span>` : ""}
-      <span>前年同月比 <b>${pct ? fd(k, cur != null && yoy != null ? cur - yoy : null) : yoy ? fp(cur / yoy - 1) : "—"}</b></span>
-      ${tgt(m) != null ? `<span>目標 <b>${fv(k, tgt(m))}</b>（${pct ? fd(k, cur - tgt(m)) : "達成率 " + (cur / tgt(m) * 100).toFixed(1) + "%"}）</span>` : ""}
+    </div>${note}
+    <p class="summary-line"><span><b style="font-family:var(--font);font-weight:600">${esc(K.name)}</b> · ${active.length ? active.map(([d, x]) => esc(dimName(d, x))).join(" × ") : "全社"} · ${esc(curLabel)} ${ser ? statusChip(ser.data_status) : ""}</span>
+      <span>値 <b>${fv(k, cur)}</b></span><span>比較（${esc(prvLabel)}） <b class="${tone(k, cur != null && prv != null ? cur - prv : null)}">${fd(k, cur != null && prv != null ? cur - prv : null)}</b></span>
+      ${!pctK && prv ? `<span>増減率 <b>${fp(cur / prv - 1)}</b></span>` : ""}
       ${ser?.baseline != null ? `<span title="季節性と直近3か月の傾向から見込んだ値">見込み <b>${fv(k, ser.baseline)}</b>（平常のばらつきの ${Math.abs(ser.z ?? 0).toFixed(1)} 倍）</span>` : ""}</p>
     ${ser?.note ? `<p class="lead">${esc(ser.note)}</p>` : ""}
     <div class="grid2">
-      <div class="card"><h3>13か月の推移</h3><p class="cap">当月・前年同月${M13.some(x => tgt(x) != null) ? "・目標" : ""}。${sk.key ? "" : "この絞り込みの組み合わせには目標が設定されていません。"}</p>
-        <div class="legend"><span><i style="border-color:var(--accent)"></i>実績</span><span><i style="border-color:var(--prior)"></i>前年同月</span>${M13.some(x => tgt(x) != null) ? `<span><i style="border-color:var(--ink-2);border-top-style:dashed"></i>目標</span>` : ""}</div>
+      <div class="card"><h3>推移 ${dlButtons("trend", () => ({name: `${K.name}_推移`, headers: ["期間", "実績", def.grain === "month" ? "前年同月" : (def.cmpLabel || "比較"), "目標"],
+          rows: s.pts.map(p => [def.full(p.key), p.v, p.c, p.t])}))}</h3>
+        <p class="cap">${def.grain === "hour" && !s.hourly ? "この指標は時間別データがありません（受注明細ベースの指標のみ時間別に対応）。" : ""}点線は目標（週・日は月の目標を平日数で日割り）。</p>
+        <div class="legend"><span><i style="border-color:var(--accent)"></i>実績</span>${def.grain === "month" ? `<span><i style="border-color:var(--prior)"></i>前年同月</span>` : def.cmpLabel ? `<span><i style="border-color:var(--prior)"></i>${def.cmpLabel}</span>` : ""}<span><i style="border-color:var(--ink-2);border-top-style:dashed"></i>目標</span></div>
         <div class="chart" id="trend"></div></div>
-      <div class="card"><h3>前月からの変化の内訳（${DIM_LABEL[by]}別）</h3><p class="cap">${esc(mlabel(pm || m))} → ${esc(mlabel(m))}、合計 ${fd(k, totalDelta)}。${K.type === "ratio" ? "率の寄与＝構成の変化＋各内訳の率の変化。" : ""}青は改善、赤は悪化の方向。${note}</p>
+      <div class="card"><h3>変化の内訳（${DIM_LABEL[state.by]}別）</h3><p class="cap">${esc(prvLabel)} → ${esc(curLabel)}、合計 ${fd(k, totalDelta)}。${K.type === "ratio" ? "率の寄与＝構成の変化＋各内訳の率の変化。" : ""}青は改善、赤は悪化の方向。</p>
         ${drivers}<div class="chart" id="contrib"></div></div>
     </div>
-    <h2 class="sec">${DIM_LABEL[by]}別の明細 <small>${by === "customer_id" ? "寄与の大きい上位15件" : ""}</small></h2>
-    <div class="tablewrap"><table><thead><tr><th>${DIM_LABEL[by]}</th><th class="n">当月</th><th class="n">前月</th><th class="n">前月差</th><th class="n">${K.type === "sum" ? "構成比" : "母数の構成比"}</th><th class="n">全体の変化への寄与</th>${K.type === "ratio" && pct ? `<th class="n">うち構成</th><th class="n">うち率</th>` : ""}</tr></thead>
+    <h2 class="sec">${DIM_LABEL[state.by]}別の明細 <small>${state.by === "customer_id" ? "寄与の大きい上位15件" : ""}</small>
+      ${dlButtons("breakdown", () => ({name: `${K.name}_${DIM_LABEL[state.by]}別`, headers: [DIM_LABEL[state.by], "当期", "比較期間", "差", "構成比", "寄与", "うち構成", "うち率"],
+        rows: state._contrib.map(r => [r.name, r.v1, r.v0, r.v1 != null && r.v0 != null ? r.v1 - r.v0 : null, r.share, r.c, r.mix, r.rate])}))}</h2>
+    <div class="tablewrap"><table><thead><tr><th>${DIM_LABEL[state.by]}</th><th class="n">当期</th><th class="n">比較期間</th><th class="n">差</th><th class="n">${K.type === "sum" ? "構成比" : "母数の構成比"}</th><th class="n">全体の変化への寄与</th>${K.type === "ratio" && pctK ? `<th class="n">うち構成</th><th class="n">うち率</th>` : ""}</tr></thead>
       <tbody>${rowsHtml || `<tr><td colspan="8" class="muted">データがありません</td></tr>`}</tbody></table></div>
   </section>`;
 }
 
-function drawTrend() {
-  const el = $("#trend"); if (!el) return;
-  const k = state.kpi, filt = state.filt;
-  const byMonth = agg(k, MONTHS, filt, null);
-  const sk = scopeKey();
-  const pts = M13.map(m => ({m, v: val(k, byMonth.get("ALL|" + m)), y: yoyM(m) ? val(k, byMonth.get("ALL|" + yoyM(m))) : null,
-    t: sk.key ? TGT.get(`${k}|${m}|${sk.key}`) ?? null : null, st: sk.key ? SER.get(`${k}|${sk.key}|${m}`)?.data_status : null}));
-  const W = Math.max(el.clientWidth, 280), H = 220, L = 58, R = 12, T = 10, B = 26;
-  const all = pts.flatMap(p => [p.v, p.y, p.t]).filter(x => x != null);
+// 汎用の折れ線（実績・比較・目標）。refs: [{value, label}] で水平線
+function lineChart(el, pts, labelOf, fullOf, fmtAxis, fmtVal, opts = {}) {
+  if (!el) return;
+  const W = Math.max(el.clientWidth, 280), H = opts.h || 220, L = 60, R = 12, T = 10, B = 26;
+  const all = pts.flatMap(p => [p.v, p.c, p.t]).concat((opts.refs || []).map(r => r.value)).filter(x => x != null && isFinite(x));
   if (!all.length) { el.innerHTML = `<p class="empty">データがありません</p>`; return; }
   let lo = Math.min(...all), hi = Math.max(...all);
   const padv = (hi - lo) * 0.12 || Math.abs(hi) * 0.1 || 1;
-  lo = KPI[k].type === "sum" ? Math.max(0, lo - padv) : lo - padv; hi += padv;
-  const x = i => L + i * (W - L - R) / (pts.length - 1), y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
-  const ticks = 4, tv = [...Array(ticks + 1)].map((_, i) => lo + (hi - lo) * i / ticks);
+  lo = opts.zero ? Math.max(0, lo - padv) : lo - padv; hi += padv;
+  const n = Math.max(pts.length - 1, 1);
+  const x = i => L + i * (W - L - R) / n, y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const tv = [...Array(5)].map((_, i) => lo + (hi - lo) * i / 4);
   const path = key => { let d = "", pen = false; pts.forEach((p, i) => { if (p[key] == null) { pen = false; return; } d += (pen ? "L" : "M") + x(i).toFixed(1) + "," + y(p[key]).toFixed(1); pen = true; }); return d; };
-  const fmtAxis = v => KPI[k].display === "percent" ? (v * 100).toFixed(1) + "%" : KPI[k].display === "yen" ? (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(1) + "億" : (v / 1e6).toFixed(0) + "百万") : Math.round(v).toLocaleString();
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(KPI[k].name)}の13か月推移">
+  const step = Math.ceil(pts.length / Math.max(4, Math.floor((W - L) / 46)));
+  const shade = opts.futureFrom != null ? `<rect x="${x(opts.futureFrom) - (W - L - R) / n / 2}" y="${T}" width="${W - R - x(opts.futureFrom) + (W - L - R) / n / 2}" height="${H - T - B}" fill="var(--surface-2)"/><text x="${W - R - 4}" y="${T + 12}" text-anchor="end">予定</text>` : "";
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img">${shade}
     <g class="grid">${tv.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`).join("")}</g>
     ${tv.map(v => `<text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end">${fmtAxis(v)}</text>`).join("")}
-    ${pts.map((p, i) => (i % 2 === (pts.length - 1) % 2) ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${mshort(p.m)}</text>` : "").join("")}
+    ${pts.map((p, i) => (pts.length - 1 - i) % step === 0 ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${esc(labelOf(p.key))}</text>` : "").join("")}
+    ${(opts.refs || []).map(r => `<line x1="${L}" x2="${W - R}" y1="${y(r.value)}" y2="${y(r.value)}" stroke="${r.color}" stroke-width="1.5" stroke-dasharray="${r.dash || "4 4"}"/><text x="${W - R - 2}" y="${y(r.value) - 4}" text-anchor="end" style="fill:${r.color}">${esc(r.label)}</text>`).join("")}
     <path d="${path("t")}" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="4 4"/>
-    <path d="${path("y")}" fill="none" stroke="var(--prior)" stroke-width="2"/>
+    <path d="${path("c")}" fill="none" stroke="var(--prior)" stroke-width="2"/>
     <path d="${path("v")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
-    ${pts.map((p, i) => p.v == null ? "" : `<circle cx="${x(i)}" cy="${y(p.v)}" r="${p.m === state.month ? 5 : 0}" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`).join("")}
-    <line id="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-width="1" visibility="hidden"/>
-    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="hit"/></svg>`;
-  const svg = el.querySelector("svg"), xh = el.querySelector("#xh");
-  el.querySelector("#hit").addEventListener("mousemove", e => {
+    ${opts.v2 ? `<path d="${path("v2")}" fill="none" stroke="var(--series2)" stroke-width="2" stroke-linejoin="round"/>` : ""}
+    ${pts.map((p, i) => p.v == null ? "" : `<circle cx="${x(i)}" cy="${y(p.v)}" r="${pts.length <= 31 ? 3 : 0}" fill="var(--accent)" stroke="var(--surface)" stroke-width="1.5"/>`).join("")}
+    <line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="var(--ink-3)" stroke-width="1" visibility="hidden"/>
+    <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" class="hit"/></svg>`;
+  const svg = el.querySelector("svg"), xh = el.querySelector(".xh");
+  el.querySelector(".hit").addEventListener("mousemove", e => {
     const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * W / r.width;
-    const i = Math.max(0, Math.min(pts.length - 1, Math.round((px - L) / ((W - L - R) / (pts.length - 1))))); const p = pts[i];
+    const i = Math.max(0, Math.min(pts.length - 1, Math.round((px - L) / ((W - L - R) / n)))); const p = pts[i];
     xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible");
-    showTip(e, `<b>${mlabel(p.m)}</b>${p.st && p.st !== "OK" ? `（${esc(p.st)}）` : ""}<br>実績 ${fv(k, p.v)}<br>前年同月 ${fv(k, p.y)}${p.t != null ? `<br>目標 ${fv(k, p.t)}` : ""}`);
+    showTip(e, `<b>${esc(fullOf(p.key))}</b><br>${opts.vLabel || "実績"} ${fmtVal(p.v)}${opts.v2 ? `<br>${opts.v2Label} ${fmtVal(p.v2)}` : ""}${p.c != null ? `<br>${opts.cLabel || "比較"} ${fmtVal(p.c)}` : ""}${p.t != null ? `<br>目標 ${fmtVal(p.t)}` : ""}${p.extra ? "<br>" + p.extra : ""}`);
   });
-  el.querySelector("#hit").addEventListener("mouseleave", () => { xh.setAttribute("visibility", "hidden"); hideTip(); });
+  el.querySelector(".hit").addEventListener("mouseleave", () => { xh.setAttribute("visibility", "hidden"); hideTip(); });
 }
+const axisFmt = k => v => KPI[k].display === "percent" ? (v * 100).toFixed(1) + "%" : KPI[k].display === "yen" ? (Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(1) + "億" : (v / 1e6).toFixed(Math.abs(v) >= 1e7 ? 0 : 1) + "百万") : Math.round(v).toLocaleString();
 
+function drawTrend() {
+  const s = state._series; if (!s) return;
+  const k = state.kpi;
+  lineChart($("#trend"), s.pts, s.def.label, s.def.full, axisFmt(k), v => fv(k, v), {cLabel: s.def.grain === "month" ? "前年同月" : s.def.cmpLabel, zero: KPI[k].type === "sum"});
+}
 function drawContrib() {
   const el = $("#contrib"); if (!el) return;
-  const k = state.kpi, K = KPI[k], m = state.month, pm = prevM(m), by = state.by;
-  const seg = by === "customer_id" ? aggCust(k, [m, pm], state.filt) : agg(k, [m, pm], state.filt, by);
-  const keys = [...new Set([...seg.keys()].map(x => x.split("|")[0]))];
-  const t0 = {num:0, den:0}, t1 = {num:0, den:0};
-  keys.forEach(s => { const a = seg.get(s + "|" + pm), b = seg.get(s + "|" + m); if (a) { t0.num += a.num; t0.den += a.den; } if (b) { t1.num += b.num; t1.den += b.den; } });
-  const R0 = t0.den ? t0.num / t0.den : 0;
-  let rows = keys.map(s => {
-    const a = seg.get(s + "|" + pm) || {num:0, den:0}, b = seg.get(s + "|" + m) || {num:0, den:0};
-    if (K.type === "sum") return {s, c: b.num - a.num};
-    const r0 = a.den > 0 ? a.num / a.den : R0, r1 = b.den > 0 ? b.num / b.den : r0;
-    const w0 = t0.den ? a.den / t0.den : 0, w1 = t1.den ? b.den / t1.den : 0;
-    return {s, c: (w1 - w0) * (r0 - R0) + w1 * (r1 - r0), mix: (w1 - w0) * (r0 - R0), rate: w1 * (r1 - r0)};
-  }).sort((a, b) => Math.abs(b.c) - Math.abs(a.c)).slice(0, 10).sort((a, b) => a.c - b.c);
-  if (!rows.length) { el.innerHTML = `<p class="empty">前月と比較できるデータがありません</p>`; return; }
+  const k = state.kpi, by = state.by;
+  let rows = (state._contrib || []).slice(0, 10).sort((a, b) => a.c - b.c);
+  if (!rows.length) { el.innerHTML = `<p class="empty">比較できるデータがありません</p>`; return; }
   const W = Math.max(el.clientWidth, 280), rowH = 24, T = 4, H = rows.length * rowH + T + 18, LBL = Math.min(130, W * 0.34), R = 70;
   const mx = Math.max(...rows.map(r => Math.abs(r.c)), 1e-12);
   const x0 = LBL + (W - LBL - R) / 2, sc = (W - LBL - R) / 2 / mx;
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="前月からの変化への寄与">
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="変化への寄与">
     <line x1="${x0}" x2="${x0}" y1="${T}" y2="${H - 16}" stroke="var(--ink-3)" stroke-width="1"/>
     ${rows.map((r, i) => {
       const yy = T + i * rowH, w = Math.abs(r.c) * sc, isGood = good(k, r.c);
       const bx = r.c >= 0 ? x0 : x0 - w; const col = r.c === 0 ? "var(--ink-3)" : isGood ? "var(--pos)" : "var(--neg)";
-      const name = dimName(by, r.s); const short = name.length > 10 ? name.slice(0, 10) + "…" : name;
+      const short = r.name.length > 10 ? r.name.slice(0, 10) + "…" : r.name;
       return `<g class="bar" data-i="${i}"><rect x="0" y="${yy}" width="${W}" height="${rowH}" fill="transparent"/>
         <text class="lab" x="${LBL - 8}" y="${yy + 15}" text-anchor="end">${esc(short)}</text>
         <rect x="${bx}" y="${yy + 5}" width="${Math.max(w, 1)}" height="${rowH - 10}" rx="2" fill="${col}"/>
-        <text x="${r.c >= 0 ? bx + w + 5 : bx - 5}" y="${yy + 15}" text-anchor="${r.c >= 0 ? "start" : "end"}">${fd(k, r.c)}</text></g>`;
+        ${(() => { const inside = r.c < 0 ? bx - LBL < 70 : W - (bx + w) < 70;  // 棒が長いときは数値を棒の内側に
+          const tx = inside ? (r.c < 0 ? bx + 5 : bx + w - 5) : (r.c >= 0 ? bx + w + 5 : bx - 5);
+          const anc = inside ? (r.c < 0 ? "start" : "end") : (r.c >= 0 ? "start" : "end");
+          return `<text x="${tx}" y="${yy + 15}" text-anchor="${anc}" ${inside ? 'style="fill:#fff"' : ""}>${fd(k, r.c)}</text>`; })()}</g>`;
     }).join("")}</svg>`;
   el.querySelectorAll("g.bar").forEach(g => {
     const r = rows[+g.dataset.i];
-    g.addEventListener("mousemove", e => showTip(e, `<b>${esc(dimName(by, r.s))}</b><br>寄与 ${fd(k, r.c)}${r.mix != null ? `<br>うち構成の変化 ${fd(k, r.mix)}<br>うち率の変化 ${fd(k, r.rate)}` : ""}`));
+    g.addEventListener("mousemove", e => showTip(e, `<b>${esc(r.name)}</b><br>寄与 ${fd(k, r.c)}${r.mix != null ? `<br>うち構成の変化 ${fd(k, r.mix)}<br>うち率の変化 ${fd(k, r.rate)}` : ""}`));
     g.addEventListener("mouseleave", hideTip);
   });
+}
+
+// ---------- サプライヤ
+const S = D.sup;
+const SC = ["supplier_code", "material", "part_size", "surface", "heat"];
+const SOPT = S ? Object.fromEntries(SC.map((c, j) => [c, [...new Set(S.combos.map(r => r[j]))].sort()])) : {};
+function supOk(ci, f) {
+  const r = S.combos[ci];
+  if (f.entity_code && S.suppliers[r[0]]?.entity !== f.entity_code) return false;
+  for (let j = 0; j < 5; j++) if (f[SC[j]] && r[j] !== f[SC[j]]) return false;
+  return true;
+}
+const supLabel = (dim, v) => dim === "supplier_code" ? `${v}（${S.suppliers[v]?.name ?? ""}）` : dim === "entity_code" ? dimName("entity_code", v) : v;
+// 期間の粒度ごとの集計元と、各バケットの平日数（供給能力＝日あたり能力×平日数）
+function supSource(grain) {
+  if (grain === "month") return {rows: S.monthly, qd: S.qd_monthly, keys: S.months, wd: m => m === CUR_M ? wdCount(m + "-01", END) : wdMonth(m)};
+  if (grain === "week") return {rows: S.weekly, qd: S.qd_weekly, keys: S.weeks, wd: w => daysBetween(w, addDays(w, 6)).filter(d => d <= END && isWd(d)).length};
+  return {rows: S.daily, qd: S.qd_daily, keys: S.days, wd: d => isWd(d) ? 1 : 0};
+}
+// by で内訳を切り、bucketKeys の範囲を合計した負荷・品質・納期
+function supAgg(grain, bucketKeys, f, by) {
+  const src = supSource(grain), set = new Set(bucketKeys);
+  const tIdx = new Map(src.keys.map((k, i) => [k, i]));
+  const tset = new Set(bucketKeys.map(k => tIdx.get(k)).filter(i => i != null));
+  const wd = bucketKeys.reduce((a, k) => a + src.wd(k), 0);
+  const out = new Map();
+  const bucket = key => { let o = out.get(key); if (!o) { o = {lines: 0, qty: 0, purchase: 0, planned: 0, capC: 0, capQ: 0, due: 0, ontime: 0, shipped: 0, defects: 0, combos: new Set()}; out.set(key, o); } return o; };
+  const keyOf = ci => by === "entity_code" ? S.suppliers[S.combos[ci][0]]?.entity : by ? S.combos[ci][SC.indexOf(by)] : "ALL";
+  S.combos.forEach((r, ci) => { if (!supOk(ci, f)) return; const o = bucket(keyOf(ci)); o.capC += r[5] * wd; o.capQ += r[6] * wd; o.combos.add(ci); });
+  for (const r of src.rows) { if (!tset.has(r[1]) || !supOk(r[0], f)) continue; const o = bucket(keyOf(r[0])); o.lines += r[2]; o.qty += r[3]; o.purchase += r[4]; o.planned += r[5] || 0; }
+  for (const r of src.qd) { if (!tset.has(r[1]) || !supOk(r[0], f)) continue; const o = bucket(keyOf(r[0])); o.due += r[2]; o.ontime += r[3]; o.shipped += r[4]; o.defects += r[5]; }
+  out.forEach(o => { o.loadC = o.capC ? o.lines / o.capC : null; o.loadQ = o.capQ ? o.qty / o.capQ : null; o.otd = o.due ? o.ontime / o.due : null; o.dr = o.shipped ? o.defects / o.shipped : null; });
+  return out;
+}
+function supBuckets() {
+  const def = periodDef(state.period);
+  if (def.grain === "hour") return {grain: "day", keys: [state.day], label: dlabel, full: dlabel, note: "供給能力は日単位のため、1日はその日の負荷を表示します"};
+  if (def.grain === "day") {
+    const fwd = S.days.filter(d => d > END);
+    return {grain: "day", keys: [...def.keys, ...fwd], label: def.label, full: dlabel, futureFrom: def.keys.length};
+  }
+  return {grain: def.grain, keys: def.keys, label: def.label, full: def.full};
+}
+const lvlChip = v => v == null ? "" : v > 1 ? `<span class="chip p1">超過</span>` : v > 0.95 ? `<span class="chip p1">95%超</span>` : v > 0.8 ? `<span class="chip p2">80%超</span>` : "";
+function loadBar(v) {
+  if (v == null) return "—";
+  const w = Math.min(v, 1.2) / 1.2 * 100, col = v > 0.95 ? "var(--crit)" : v > 0.8 ? "var(--serious)" : "var(--accent)";
+  return `<span class="lbar" title="${pct(v)}"><span style="width:${w.toFixed(1)}%;background:${col}"></span><i style="left:${(0.8 / 1.2 * 100).toFixed(1)}%"></i></span><span class="num">${pct(v)}</span>`;
+}
+function renderSupplier() {
+  if (!S) return `<section class="panel"><p class="empty">サプライヤのデータがありません。</p></section>`;
+  const f = state.sfilt, b = supBuckets(), win = b.grain === "day" ? b.keys.filter(k => k <= END) : b.keys;
+  const tot = supAgg(b.grain, win, f, null).get("ALL") || {};
+  const fwdDays = S.days.filter(d => d > END && d <= S.forward_end);
+  const fwdStart = M.as_of;
+  const fwd = supAgg("day", S.days.filter(d => d >= fwdStart && d <= S.forward_end), f, null).get("ALL") || {};
+  const sel = (dim, label, opts) => `<label for="sf-${dim}">${label}<select id="sf-${dim}" data-sdim="${dim}"><option value="">すべて</option>${opts.map(v => `<option value="${esc(v)}" ${f[dim] === v ? "selected" : ""}>${esc(supLabel(dim, v))}</option>`).join("")}</select></label>`;
+  const byOpts = ["supplier_code", "material", "part_size", "surface", "heat", "entity_code"].map(d => `<option value="${d}" ${d === state.sby ? "selected" : ""}>${DIM_LABEL[d]}</option>`).join("");
+  const byAgg = supAgg(b.grain, win, f, state.sby);
+  const fwdBy = supAgg("day", S.days.filter(d => d >= fwdStart && d <= S.forward_end), f, state.sby);
+  const rows = [...byAgg.entries()].filter(([, o]) => o.capC > 0).map(([key, o]) => ({key, ...o, fwd: fwdBy.get(key)?.loadC, fwdQ: fwdBy.get(key)?.loadQ}))
+    .sort((a, b) => Math.max(b.loadC ?? 0, b.loadQ ?? 0) - Math.max(a.loadC ?? 0, a.loadQ ?? 0));
+  state._suprows = rows;
+  const sa = supAlerts.filter(a => { const kv = Object.fromEntries(a.scope_key.split("|").map(x => x.split("="))); return Object.entries(f).every(([d, v]) => !v || (d === "entity_code" ? S.suppliers[kv.supplier_code]?.entity === v : !kv[d] || kv[d] === v || kv[d] === "*")); });
+  const notes = (S.notifications || []).filter(n => sa.some(a => a.scope_key === n.scope_key) || n.reason === "解消");
+  const tile = (name, v, sub, extra = "") => `<div class="tile static"><div class="name"><span>${name}</span>${extra}</div><div class="val num">${v}</div><div class="muted small">${sub}</div></div>`;
+  const periodTxt = b.grain === "day" && b.keys.length === 1 ? dlabel(b.keys[0]) : `${b.full(win[0])}〜${b.full(win.at(-1))}`;
+  return `<section class="panel">
+    <p class="lead"><b>生産充足率</b>＝出荷日ベースの出荷（予定を含む）÷ サプライヤの供給能力（材質×サイズ×表面処理×熱処理ごとの日あたり上限 × 平日数）。<b>80%以下が目標</b>で、超えると逼迫としてアラートを出し、サプライヤ担当と上司に Teams で通知します（ダミーでは通知予定リストまで）。</p>
+    ${periodSeg()}
+    <div class="filters">
+      <label for="sf-entity_code">現地法人<select id="sf-entity_code" data-sdim="entity_code">${filterOptions("entity_code", f.entity_code)}</select></label>
+      ${sel("supplier_code", "サプライヤ", SOPT.supplier_code.filter(c => !f.entity_code || S.suppliers[c]?.entity === f.entity_code))}
+      ${sel("material", "材質", SOPT.material)}${sel("part_size", "サイズ", SOPT.part_size)}${sel("surface", "表面処理", SOPT.surface)}${sel("heat", "熱処理", SOPT.heat)}
+      ${Object.values(f).some(Boolean) ? `<button class="linkbtn" id="sf-reset" style="margin-bottom:6px">絞り込みを解除</button>` : ""}
+    </div>
+    ${b.note ? `<p class="lead">${b.note}</p>` : ""}
+    <div class="tiles">
+      ${tile("生産充足率（件数）", pct(tot.loadC), `${periodTxt}・出荷 ${num(tot.lines)}件／能力 ${num(tot.capC)}件`, lvlChip(tot.loadC))}
+      ${tile("生産充足率（数量）", pct(tot.loadQ), `出荷 ${num(tot.qty)}個／能力 ${num(tot.capQ)}個`, lvlChip(tot.loadQ))}
+      ${tile("今後の出荷予定の充足率", `${pct(fwd.loadC)} / ${pct(fwd.loadQ)}`, `件数 / 数量・${dlabel(fwdStart)}〜${dlabel(S.forward_end)}（受注済み分）`, lvlChip(Math.max(fwd.loadC ?? 0, fwd.loadQ ?? 0)))}
+      ${tile("発注金額", yen(tot.purchase), `${periodTxt}（サプライヤへの発注額）`)}
+      ${tile("納期遵守率", tot.otd != null ? (tot.otd * 100).toFixed(1) + "%" : "—", `納期到来 ${num(tot.due)}明細`)}
+      ${tile("品質不良発生率", tot.dr != null ? (tot.dr * 100).toFixed(2) + "%" : "—", `出荷 ${num(tot.shipped)}明細・不良 ${num(tot.defects)}件`)}
+    </div>
+    <div class="grid2" style="margin-top:14px">
+      <div class="card"><h3>生産充足率の推移 ${dlButtons("sup_trend", () => ({name: "生産充足率_推移", headers: ["期間", "充足率（件数）", "充足率（数量）", "出荷件数", "供給能力（件）", "出荷数量", "供給能力（数量）", "発注金額", "予定分（件）"],
+          rows: state._suppts.map(p => [b.full(p.key), p.v, p.v2, p.o?.lines, p.o?.capC, p.o?.qty, p.o?.capQ, p.o?.purchase, p.o?.planned])}))}</h3>
+        <p class="cap">点線は目標80%、赤線は供給能力の上限100%。${b.futureFrom != null ? "網掛けは今後の出荷予定（受注済み分のみ）。" : ""}</p>
+        <div class="legend"><span><i style="border-color:var(--accent)"></i>件数ベース</span><span><i style="border-color:var(--series2)"></i>数量ベース</span></div>
+        <div class="chart" id="sup-trend"></div></div>
+      <div class="card"><h3>日別の受注負荷と発注金額 ${dlButtons("sup_daily", () => ({name: "日別負荷", headers: ["出荷日", "出荷（予定）件数", "日あたり供給可能件数", "充足率（件数）", "出荷数量", "供給可能数量", "発注金額", "うち予定（件）"],
+          rows: state._supdaily.map(p => [p.key, p.o?.lines, p.o?.capC, p.o?.loadC, p.o?.qty, p.o?.capQ, p.o?.purchase, p.o?.planned])}))}</h3>
+        <p class="cap">出荷日ベース。棒＝その日に出荷する（予定の）明細数、実線＝その日の供給可能件数、点線＝80%。下段は同じ日の発注金額。</p>
+        <div class="chart" id="sup-daily"></div><div class="chart" id="sup-amount"></div></div>
+    </div>
+    <h2 class="sec">逼迫している領域 <small>${periodTxt}。行と列を選んで、どこに負荷が集中しているかを見る</small>
+      ${dlButtons("sup_heat", () => ({name: "充足率ヒートマップ", headers: ["行", "列", "充足率（件数）", "充足率（数量）", "出荷件数", "供給能力（件）"], rows: state._heat || []}))}</h2>
+    <div class="filters"><label for="sh-row">行<select id="sh-row" data-hdim="hrow">${["supplier_code","material","part_size","surface","heat"].map(d => `<option value="${d}" ${d === state.hrow ? "selected" : ""}>${DIM_LABEL[d]}</option>`).join("")}</select></label>
+      <label for="sh-col">列<select id="sh-col" data-hdim="hcol">${["material","part_size","surface","heat","supplier_code"].map(d => `<option value="${d}" ${d === state.hcol ? "selected" : ""}>${DIM_LABEL[d]}</option>`).join("")}</select></label></div>
+    <div class="tablewrap" id="sup-heat"></div>
+    <h2 class="sec">${DIM_LABEL[state.sby]}別の充足率・品質・納期 <small>充足率の高い順。今後＝${dlabel(fwdStart)}〜${dlabel(S.forward_end)}の出荷予定</small>
+      ${dlButtons("sup_table", () => ({name: `サプライヤ_${DIM_LABEL[state.sby]}別`, headers: [DIM_LABEL[state.sby], "出荷件数", "供給能力（件）", "充足率（件数）", "出荷数量", "供給能力（数量）", "充足率（数量）", "今後の充足率（件数）", "今後の充足率（数量）", "発注金額", "納期遵守率", "品質不良発生率"],
+        rows: state._suprows.map(r => [supLabel(state.sby, r.key), r.lines, r.capC, r.loadC, r.qty, r.capQ, r.loadQ, r.fwd, r.fwdQ, r.purchase, r.otd, r.dr])}))}</h2>
+    <div class="filters"><label for="sf-by">内訳<select id="sf-by">${byOpts}</select></label></div>
+    <div class="tablewrap"><table><thead><tr><th>${DIM_LABEL[state.sby]}</th><th class="n">出荷／能力（件）</th><th>充足率（件数）</th><th>充足率（数量）</th><th>今後（件数／数量）</th><th class="n">発注金額</th><th class="n">納期遵守率</th><th class="n">品質不良率</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td>${esc(supLabel(state.sby, r.key))} ${lvlChip(Math.max(r.loadC ?? 0, r.loadQ ?? 0))}</td><td class="n">${num(r.lines)} / ${num(r.capC)}</td><td>${loadBar(r.loadC)}</td><td>${loadBar(r.loadQ)}</td>
+        <td class="num">${pct(r.fwd)} / ${pct(r.fwdQ)}</td><td class="n">${yen(r.purchase)}</td><td class="n">${r.otd != null ? (r.otd * 100).toFixed(1) + "%" : "—"}</td><td class="n">${r.dr != null ? (r.dr * 100).toFixed(2) + "%" : "—"}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">該当なし</td></tr>`}
+    </tbody></table></div>
+    <h2 class="sec">供給アラートと打ち手 <small>${sa.length}件（絞り込みに該当するもの）</small></h2>
+    ${sa.length ? `<div class="alist">${sa.map(a => alertCard(a, D.actions.find(x => x.alert_id === a.alert_id))).join("")}</div>` : `<p class="empty">充足率80%を超えている領域はありません。</p>`}
+    <h2 class="sec">通知予定（Teams） <small>新規・悪化・解消のときだけ通知（同じ事象は毎日通知しない）</small>
+      ${dlButtons("sup_notify", () => ({name: "通知予定", headers: ["通知ID", "日時", "手段", "宛先", "CC", "優先度", "理由", "件名", "本文", "状態"],
+        rows: (S.notifications || []).map(n => [n.notify_id, n.created_at, n.channel, n.to, n.cc, n.priority, n.reason, n.title, n.message, n.status])}))}</h2>
+    ${notes.length ? `<div class="tablewrap"><table><thead><tr><th>日時</th><th>宛先（担当）</th><th>CC（上司）</th><th>理由</th><th>件名</th><th>状態</th></tr></thead><tbody>
+      ${notes.map(n => `<tr><td class="mono">${esc(n.created_at)}</td><td>${esc(n.to)}</td><td>${esc(n.cc)}</td><td>${esc(n.reason)}</td><td>${esc(n.title)}</td><td class="muted">${esc(n.status)}</td></tr>`).join("")}
+    </tbody></table></div>` : `<p class="empty">今回の更新で新たに送る通知はありません。</p>`}
+  </section>`;
+}
+function drawSupplier() {
+  if (!S || !$("#sup-trend")) return;
+  const f = state.sfilt, b = supBuckets();
+  const pts = b.keys.map(k => { const o = supAgg(b.grain, [k], f, null).get("ALL"); return {key: k, v: o?.loadC ?? null, v2: o?.loadQ ?? null, o,
+    extra: o ? `出荷 ${num(o.lines)}件／能力 ${num(o.capC)}件<br>発注金額 ${yen(o.purchase)}` : ""}; });
+  state._suppts = pts;
+  lineChart($("#sup-trend"), pts, b.label, b.full, v => (v * 100).toFixed(0) + "%", pct,
+    {v2: true, v2Label: "数量ベース", vLabel: "件数ベース", zero: true, futureFrom: b.futureFrom,
+     refs: [{value: 0.8, label: "目標80%", color: "var(--ink-2)"}, {value: 1, label: "上限100%", color: "var(--crit)", dash: "0"}]});
+  // 日別の受注負荷（件数）と発注金額：同じ日付軸の2段（1つの軸に2つの尺度を混ぜない）
+  const days = S.days.filter(d => d >= addDays(END, -29));
+  const dp = days.map(d => ({key: d, o: supAgg("day", [d], f, null).get("ALL")}));
+  state._supdaily = dp;
+  barChart($("#sup-daily"), dp, d => `${+d.slice(5, 7)}/${+d.slice(8)}`, p => p.o?.lines ?? 0, p => isWd(p.key) ? p.o?.capC ?? 0 : null,
+    p => `<b>${dlabel(p.key)}</b>${p.key > END ? "（予定）" : ""}<br>出荷 ${num(p.o?.lines)}件（うち予定 ${num(p.o?.planned)}）<br>供給可能 ${num(p.o?.capC)}件（充足率 ${pct(p.o?.loadC)}）<br>数量 ${num(p.o?.qty)}／能力 ${num(p.o?.capQ)}<br>発注金額 ${yen(p.o?.purchase)}`, 170, true);
+  barChart($("#sup-amount"), dp, d => `${+d.slice(5, 7)}/${+d.slice(8)}`, p => p.o?.purchase ?? 0, null,
+    p => `<b>${dlabel(p.key)}</b><br>発注金額 ${yen(p.o?.purchase)}`, 90, false, v => (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + "百万");
+  drawHeat();
+}
+function barChart(el, pts, labelOf, getV, getCap, tipOf, H, withCap, fmtAxis = v => Math.round(v).toLocaleString()) {
+  if (!el) return;
+  const W = Math.max(el.clientWidth, 280), L = 56, R = 10, T = 8, B = 22;
+  const vals = pts.map(getV), caps = getCap ? pts.map(getCap) : [];
+  const hi = Math.max(1, ...vals, ...caps.filter(c => c != null)) * 1.1;
+  const n = pts.length, bw = (W - L - R) / n;
+  const y = v => T + (1 - v / hi) * (H - T - B);
+  const step = Math.ceil(n / Math.max(4, Math.floor((W - L) / 46)));
+  const capPath = getCap ? pts.map((p, i) => caps[i] == null ? null : [L + i * bw, y(caps[i]), L + (i + 1) * bw]).map((c, i) => c ? `M${c[0].toFixed(1)},${c[1].toFixed(1)}H${c[2].toFixed(1)}` : "").join("") : "";
+  const cap80 = getCap ? pts.map((p, i) => caps[i] == null ? "" : `M${(L + i * bw).toFixed(1)},${y(caps[i] * 0.8).toFixed(1)}H${(L + (i + 1) * bw).toFixed(1)}`).join("") : "";
+  const endIdx = pts.findIndex(p => p.key > END);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img">
+    ${endIdx >= 0 ? `<rect x="${L + endIdx * bw}" y="${T}" width="${W - R - L - endIdx * bw}" height="${H - T - B}" fill="var(--surface-2)"/>` : ""}
+    <g class="grid">${[0, 0.5, 1].map(t => `<line x1="${L}" x2="${W - R}" y1="${y(hi / 1.1 * t)}" y2="${y(hi / 1.1 * t)}"/>`).join("")}</g>
+    ${[0, 0.5, 1].map(t => `<text x="${L - 6}" y="${y(hi / 1.1 * t) + 3.5}" text-anchor="end">${fmtAxis(hi / 1.1 * t)}</text>`).join("")}
+    ${pts.map((p, i) => { const v = vals[i], over = withCap && caps[i] && v > caps[i] * 0.8; const col = over ? (v > caps[i] ? "var(--crit)" : "var(--serious)") : "var(--accent)";
+      return `<rect x="${(L + i * bw + 1).toFixed(1)}" y="${y(v).toFixed(1)}" width="${Math.max(bw - 2, 1).toFixed(1)}" height="${(H - B - y(v)).toFixed(1)}" rx="2" fill="${col}" opacity="${p.key > END ? 0.55 : 1}"/>`; }).join("")}
+    ${capPath ? `<path d="${capPath}" stroke="var(--crit)" stroke-width="2" fill="none"/><path d="${cap80}" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>` : ""}
+    ${pts.map((p, i) => (n - 1 - i) % step === 0 ? `<text x="${L + (i + 0.5) * bw}" y="${H - 6}" text-anchor="middle">${esc(labelOf(p.key))}</text>` : "").join("")}
+    ${pts.map((p, i) => `<rect class="hb" data-i="${i}" x="${L + i * bw}" y="${T}" width="${bw}" height="${H - T - B}" fill="transparent"/>`).join("")}</svg>`;
+  el.querySelectorAll(".hb").forEach(r => { r.addEventListener("mousemove", e => showTip(e, tipOf(pts[+r.dataset.i]))); r.addEventListener("mouseleave", hideTip); });
+}
+function drawHeat() {
+  const el = $("#sup-heat"); if (!el) return;
+  const f = state.sfilt, b = supBuckets(), win = b.grain === "day" ? b.keys.filter(k => k <= END) : b.keys;
+  const rd = state.hrow, cd = state.hcol === rd ? (rd === "material" ? "part_size" : "material") : state.hcol;
+  const src = supSource(b.grain), tIdx = new Map(src.keys.map((k, i) => [k, i])), tset = new Set(win.map(k => tIdx.get(k)).filter(i => i != null));
+  const wd = win.reduce((a, k) => a + src.wd(k), 0);
+  const cell = new Map(), ri = SC.indexOf(rd), cix = SC.indexOf(cd);
+  const get = (r, c) => { const k = r + "\u0000" + c; let o = cell.get(k); if (!o) { o = {lines: 0, qty: 0, capC: 0, capQ: 0}; cell.set(k, o); } return o; };
+  S.combos.forEach((r, ci) => { if (!supOk(ci, f)) return; const o = get(r[ri], r[cix]); o.capC += r[5] * wd; o.capQ += r[6] * wd; });
+  for (const r of src.rows) { if (!tset.has(r[1]) || !supOk(r[0], f)) continue; const c = S.combos[r[0]]; const o = get(c[ri], c[cix]); o.lines += r[2]; o.qty += r[3]; }
+  const rows = [...new Set([...cell.keys()].map(k => k.split("\u0000")[0]))].sort(), cols = [...new Set([...cell.keys()].map(k => k.split("\u0000")[1]))].sort();
+  const heat = [];
+  const td = (r, c) => { const o = cell.get(r + "\u0000" + c); if (!o || !o.capC) return `<td class="hm empty-c"></td>`;
+    const v = Math.max(o.lines / o.capC, o.capQ ? o.qty / o.capQ : 0); heat.push([supLabel(rd, r), supLabel(cd, c), o.lines / o.capC, o.capQ ? o.qty / o.capQ : null, o.lines, o.capC]);
+    const cls = v > 0.95 ? "hm crit" : v > 0.8 ? "hm warn" : "hm";
+    const a = Math.min(v, 1) * 0.55;
+    return `<td class="${cls}" style="--a:${a.toFixed(2)}" title="${esc(supLabel(rd, r))} × ${esc(supLabel(cd, c))}：件数 ${pct(o.lines / o.capC)}・数量 ${pct(o.capQ ? o.qty / o.capQ : null)}（${num(o.lines)}／${num(o.capC)}件）">${pct(v)}</td>`; };
+  el.innerHTML = `<table class="heat"><thead><tr><th>${DIM_LABEL[rd]} ＼ ${DIM_LABEL[cd]}</th>${cols.map(c => `<th>${esc(supLabel(cd, c))}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr><th>${esc(supLabel(rd, r))}</th>${cols.map(c => td(r, c)).join("")}</tr>`).join("")}</tbody></table>
+    <p class="muted small" style="padding:6px 10px">セルの値は件数・数量ベースの高い方。橙＝80%超、赤＝95%超。空欄は供給能力なし。</p>`;
+  state._heat = heat;
 }
 
 // ---------- 描画
 function render() {
   renderTabs();
   const main = $("#main");
-  main.innerHTML = {summary: renderSummary, analysis: renderAnalysis, alerts: renderAlerts, actions: renderActions, dq: renderDQ, defs: renderDefs}[state.tab]();
+  main.innerHTML = {summary: renderSummary, analysis: renderAnalysis, supplier: renderSupplier, alerts: renderAlerts, actions: renderActions, dq: renderDQ, defs: renderDefs}[state.tab]();
   if (state.tab === "analysis") { drawTrend(); drawContrib(); }
+  if (state.tab === "supplier") drawSupplier();
 }
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-kpi],[data-open],[data-go],[data-prio],#f-reset");
+  const t = e.target.closest("[data-kpi],[data-open],[data-sopen],[data-go],[data-prio],[data-cat],[data-period],[data-dl],#f-reset,#sf-reset");
   if (!t) return;
+  if (t.dataset.dl) { doDownload(t.dataset.dl, t.dataset.fmt); return; }
+  if (t.dataset.period) { state.period = t.dataset.period; save(); render(); return; }
   if (t.dataset.kpi) { state.kpi = t.dataset.kpi; state.filt = {}; state.month = TM; go("analysis"); }
   else if (t.dataset.open) {
     const [k, key, m] = t.dataset.open.split("|");
     state.kpi = k; state.month = MONTHS.includes(m) ? m : TM; state.filt = {};
     if (key !== "ALL") key.split("|").forEach(kv => { const [d, v] = kv.split("="); if (DIMS[d]) state.filt[d] = v; });
     const f = Object.keys(state.filt);
+    state.period = "all";
     state.by = f.includes("entity_code") && f.includes("product_code") ? "customer_id" : f.includes("entity_code") ? "product_code" : f.includes("product_code") ? "entity_code" : f.includes("section_code") ? "customer_id" : "entity_code";
-    if (state.filt.section_code) { state.by = "customer_id"; }
     go("analysis");
+  }
+  else if (t.dataset.sopen) {
+    state.sfilt = {};
+    t.dataset.sopen.split("|").forEach(kv => { const [d, v] = kv.split("="); if (v && v !== "*") state.sfilt[d] = v; });
+    state.sby = state.sfilt.material ? "part_size" : "material";
+    go("supplier");
   }
   else if (t.dataset.go) go(t.dataset.go);
   else if (t.dataset.prio) { state.prio = t.dataset.prio; render(); }
+  else if (t.dataset.cat) { state.cat = t.dataset.cat; render(); }
   else if (t.id === "f-reset") { state.filt = {}; render(); }
+  else if (t.id === "sf-reset") { state.sfilt = {}; render(); }
 });
 document.addEventListener("change", e => {
   const t = e.target;
   if (t.id === "f-kpi") state.kpi = t.value;
   else if (t.id === "f-month") state.month = t.value;
   else if (t.id === "f-by") state.by = t.value;
+  else if (t.id === "f-day") state.day = t.value;
+  else if (t.id === "sf-by") state.sby = t.value;
+  else if (t.dataset.sdim) { state.sfilt[t.dataset.sdim] = t.value; if (t.dataset.sdim === "entity_code") delete state.sfilt.supplier_code; }
+  else if (t.dataset.hdim) state[t.dataset.hdim] = t.value;
   else if (t.dataset.dim) state.filt[t.dataset.dim] = t.value;
   else return;
   render();
 });
-let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (state.tab === "analysis") { drawTrend(); drawContrib(); } }, 120); });
+let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (state.tab === "analysis") { drawTrend(); drawContrib(); } if (state.tab === "supplier") drawSupplier(); }, 120); });
 render();
 })();
 </script>

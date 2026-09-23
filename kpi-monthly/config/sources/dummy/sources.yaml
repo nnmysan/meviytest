@@ -12,6 +12,8 @@ masters:
   fx_rates:  {file: master/fx_rates.csv,  required: [month, currency, budget_rate, actual_rate]}
   targets:   {file: master/targets.csv,   required: [kpi_id, month, scope_type, scope_key, target]}
   owners:    {file: master/owners.csv,    required: [kpi_id, entity_code, product_code, owner, manager]}
+  suppliers: {file: master/suppliers.csv, key: supplier_code, required: [supplier_code, supplier_name, entity_code, owner, manager]}
+  supplier_capacity: {file: master/supplier_capacity.csv, required: [supplier_code, material, part_size, surface, heat, cap_count_day, cap_qty_day]}
 sources:
   quotes:
     dir: quotes
@@ -51,6 +53,13 @@ sources:
       currency:     {from: 通貨,       type: str,      required: true}
       status:       {from: 状態,       type: str,      required: true, allowed: [受注, 取消]}
       updated_at:   {from: 更新日時,   type: datetime, required: true}
+      order_ts:     {from: 受注日時,   type: datetime, required: false}   # 時間別の表示に使う（なければ日別まで）
+      quantity:     {from: 受注数量,   type: int,      required: true, min: 1}
+      supplier_code: {from: 仕入先コード, type: code,   required: true, master: suppliers}
+      material:     {from: 材質,       type: str,      required: true}
+      part_size:    {from: サイズ区分, type: str,      required: true}
+      surface:      {from: 表面処理,   type: str,      required: true}
+      heat:         {from: 熱処理,     type: str,      required: true}
   shipments:
     dir: shipments
     file_regex: '^shipments_(?P<entity>[A-Z]{2})_(?P<yyyymm>\d{6})(?P<suffix>_[a-z0-9]+)?\.csv$'

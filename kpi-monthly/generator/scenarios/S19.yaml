@@ -1,0 +1,15 @@
+id: S19
+name: サプライヤの逼迫（振替候補あり）
+description: 月20万行規模。2026-08 から SUP-JP03 の SUS304・サイズS への発注を2倍に集中させる。同じ仕様を扱える SUP-JP04 には余力がある（ただし能力は小さい）。
+seed: 20260901
+volume_scale: 45
+start_month: 2026-05
+effects:
+  - {type: combo_demand, supplier_code: SUP-JP03, material: SUS304, part_size: S, months: [2026-08, 2026-09], factor: 2.0}
+expect:
+  - {check: status, equals: ok}
+  - {check: supplier_truth, month: 2026-08}
+  - {check: alert, category: 供給, scope_key: "supplier_code=SUP-JP03|material=SUS304|part_size=S|surface=なし|heat=なし", min_priority: P2}
+  - {check: supplier_action, scope_key: "supplier_code=SUP-JP03|material=SUS304|part_size=S|surface=なし|heat=なし", include: [振替, 拡大交渉], candidate: SUP-JP04, owner_contains: 購買}
+  - {check: notification, scope_key: "supplier_code=SUP-JP03|material=SUS304|part_size=S|surface=なし|heat=なし", reason: 新規, to_contains: 担当, cc_contains: 課長}
+  - {check: notify_rerun, scope_key: "supplier_code=SUP-JP03|material=SUS304|part_size=S|surface=なし|heat=なし"}

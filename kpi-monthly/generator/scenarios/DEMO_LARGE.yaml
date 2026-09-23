@@ -1,0 +1,15 @@
+id: DEMO_LARGE
+name: デモ（月20万行・25か月・複数の事象）
+description: 受注明細 月約20万行 × 25か月（2024-08〜2026-08）＋当月途中（9/22まで）。取込日 2026-09-23。欧州×板金溶接の納期遅延、6月からの粗利率低下、大口案件の反動、サプライヤ2社の逼迫、韓国の9月の受注減を同時に含む。
+seed: 20260901
+volume_scale: 62
+start_month: 2024-08
+as_of: 2026-09-23
+effects:
+  - {type: late_prob, entity: EU, product: SWD, months: [2026-08], value: 0.30}
+  - {type: margin_shift, months: [2026-06, 2026-07, 2026-08, 2026-09], delta: -0.025}
+  - {type: large_order, month: 2026-07, entity: JP, product: MRD, share: 0.15}
+  - {type: combo_demand, supplier_code: SUP-JP03, material: SUS304, part_size: S, months: [2026-08, 2026-09], factor: 2.0}
+  - {type: combo_demand, supplier_code: SUP-JP04, material: SCM435, part_size: S, surface: 黒染め, heat: 焼入れ焼戻し, months: [2026-08, 2026-09], factor: 2.5}
+  - {type: demand, entity: KR, months: [2026-09], factor: 0.65}
+expect: []

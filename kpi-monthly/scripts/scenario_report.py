@@ -18,12 +18,12 @@ from kpimonthly.config import load_config  # noqa: E402
 CFG = load_config("dummy", extra_kpi_files=[ROOT / "generator/scenarios/extra/avg_order_value.yaml"])
 KNAME = {k["id"]: k["name"] for k in CFG.kpis}
 RULE = {"target_miss": "目標未達", "abnormal": "急変", "seasonal": "季節要因の可能性", "trend": "連続悪化",
-        "large_order": "大口案件"}
+        "large_order": "大口案件", "forecast": "当月の着地見込み未達", "capacity": "充足率80%超"}
 DQ = {"missing_file": "ファイル未着", "late_arrival": "期限後の到着", "schema_error": "列構成の不一致",
       "encoding_mismatch": "文字コードの相違", "quarantine_rows": "不正な行の隔離", "exact_duplicates": "完全重複行",
       "key_conflicts": "同一キーで値が異なる行", "duplicate_file": "同一ファイルの再送", "unknown_code": "未登録コード",
       "control_mismatch": "件数・金額の照合不一致", "restatement": "過去値の修正"}
-COL = {"cause_type": "示唆の種類", "consecutive_miss": "連続未達月数", "top_contributor": "最大の寄与内訳",
+COL = {"rule_label": "判定", "cause_type": "示唆の種類", "consecutive_miss": "連続未達月数", "top_contributor": "最大の寄与内訳",
        "label": "ラベル", "pct": "前月比", "diff": "前月差", "prev_status": "前月の状態", "small_sample": "母数少フラグ",
        "value": "値", "data_status": "データ状態", "note": "注記"}
 
@@ -31,6 +31,8 @@ COL = {"cause_type": "示唆の種類", "consecutive_miss": "連続未達月数"
 def scope(key: str) -> str:
     if key in (None, "ALL"):
         return "全社"
+    if "supplier_code=" in key:
+        return " × ".join(kv.split("=")[1] for kv in key.split("|"))
     names = {**{e: v["name"] for e, v in P.ENTITIES.items()}, **{p: v["name"] for p, v in P.PRODUCTS.items()}, "UNK": "未分類"}
     return " × ".join(names.get(kv.split("=")[1], kv.split("=")[1]) for kv in key.split("|"))
 
@@ -53,6 +55,8 @@ def describe(c: dict) -> str:
         kp = "全KPI" if s.get("kpis", "all") == "all" else "・".join(KNAME[x] for x in s["kpis"])
         sc = "・".join(scope(x) for x in s["scope_keys"]) if "scope_keys" in s else "・".join(s.get("scope_types", []))
         return f"{kp}の値が正解値と一致（{sc}、{s['months'][0]}〜{s['months'][1]}）"
+    if k == "alert" and s.get("category") == "供給":
+        return f"供給アラート：{scope(s['scope_key'])}（{s.get('min_priority', 'INFO')}以上）"
     if k == "alert":
         rule = RULE.get(s.get("rule"), "いずれか")
         lab = f"、ラベル「{s['label']}」" if "label" in s else ""
@@ -60,7 +64,7 @@ def describe(c: dict) -> str:
     if k == "alert_field":
         return f"{kn}・{scope(s['scope_key'])}の{RULE.get(s.get('rule'), '')}アラートの{COL.get(s['column'], s['column'])} {op(s)}"
     if k == "no_alert":
-        tgt = f"{kn}・{scope(s['scope_key'])}" if "scope_key" in s else (kn or ("業績" if s.get("category") else "全体"))
+        tgt = f"{kn}・{scope(s['scope_key'])}" if "scope_key" in s else (kn or (s.get("category") or RULE.get(s.get("rule"), "全体")))
         return f"{tgt}に {'・'.join(s.get('priorities', ['P1', 'P2']))} のアラートが出ない（誤検知しない）"
     if k == "dq":
         cnt = "（件数＝注入数）" if "count_equals_fact" in s else f"（{s['count_ge']}件以上）" if "count_ge" in s else ""
@@ -92,6 +96,23 @@ def describe(c: dict) -> str:
         return f"ダッシュボードに追加KPI「{kn}」が表示される"
     if k == "fx_ratio":
         return "実績レート換算 ÷ 予算レート換算 ＝ 注入した為替の比率（為替影響を分離）"
+    if k == "supplier_truth":
+        return f"{s['month']} の生産充足率（全組み合わせ・全サプライヤ、件数・数量）が正解値と一致"
+    if k == "supplier_eval":
+        return f"{scope(s['scope_key'])} の「今後の出荷予定」の充足率 ≧ {s['load_ge']:.0%}"
+    if k == "supplier_action":
+        parts = [f"打ち手に「{'・'.join(s.get('include', []))}」"]
+        if s.get("exclude"):
+            parts.append(f"「{'・'.join(s['exclude'])}」は出さない")
+        if s.get("candidate"):
+            parts.append(f"振替候補に {s['candidate']}")
+        return f"打ち手の提案：{scope(s['scope_key'])}（{'、'.join(parts)}）"
+    if k == "notification":
+        return f"Teams 通知予定：宛先に「{s.get('to_contains', '')}」、CCに「{s.get('cc_contains', '')}」、理由「{s.get('reason', '')}」"
+    if k == "notify_rerun":
+        return "翌朝の再実行では、同じ事象を再通知しない（アラートは継続）"
+    if k == "pace_truth":
+        return f"{KNAME.get(s['kpi'])}・全社の当月累計が正解値と一致（着地見込みを表示）"
     if k == "idempotent":
         return "同じ入力で再実行しても全KPI値が完全一致（冪等）"
     return k
@@ -117,7 +138,7 @@ def main(src: str, dst: str) -> None:
         f"- シナリオ：{n_ok} / {len(report)} 件合格",
         f"- 照合項目：{n_chk_ok} / {n_chk} 件合格",
         "- 再現性：シナリオごとに seed を固定（同じ seed なら出力ファイルはバイト単位で同一。`tests/test_scenarios.py`）",
-        "- 再実行：`PYTHONPATH=src:. python -m kpimonthly.verify --scenario all`（全件で約8分）",
+        "- 再実行：`PYTHONPATH=src:. python -m kpimonthly.verify --scenario all`（全件で約25分。S19・S20 は受注明細 月20万行規模）",
         "",
         "| # | シナリオ | 結果 |", "|---|---|---|",
     ]

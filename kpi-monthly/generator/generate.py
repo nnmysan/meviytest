@@ -24,10 +24,10 @@ import pandas as pd
 import yaml
 
 from . import params as P
-from .truth import build_targets, compute_truth
+from .truth import build_targets, compute_truth, supplier_truth
 from .world import apply_correction, build_world, month_list, section_of
 
-GENERATOR_VERSION = "0.1.0"
+GENERATOR_VERSION = "0.2.0"
 SCENARIO_DIR = Path(__file__).parent / "scenarios"
 SOURCES = ("quotes", "orders", "shipments", "defects")
 PRIMARY_DATE = {"quotes": "quote_date", "orders": "order_date", "shipments": None, "defects": "found_date"}
@@ -56,12 +56,12 @@ def to_export(source: str, df: pd.DataFrame) -> pd.DataFrame:
         v = df[col]
         if col.endswith("_date"):
             out[jp] = _fmt_date(v)
-        elif col == "updated_at":
+        elif col in ("updated_at", "order_ts"):
             out[jp] = _fmt_date(v, "%Y-%m-%d %H:%M:%S")
         elif col in ("amount_local", "cost_local"):
             dec = df["currency"].map(P.DECIMALS)
             out[jp] = [f"{a:.0f}" if d == 0 else f"{a:.2f}" for a, d in zip(v, dec)]
-        elif col == "line_no":
+        elif col in ("line_no", "quantity"):
             out[jp] = v.astype("int64").astype(str)
         else:
             out[jp] = v.fillna("").astype(str)
@@ -79,12 +79,14 @@ def build_files(world: dict, months: list[str]) -> dict:
             m = df.order_id.map(order_month)  # 出荷・納期明細は受注月単位で出力（仮の仕様）
         else:
             m = pd.Series(df[PRIMARY_DATE[source]].values.astype("datetime64[M]").astype(str))
-        exp = to_export(source, df)
-        groups = {k: idx for k, idx in exp.groupby([df.entity_code, m]).groups.items()}
         all_months = sorted(set(months) | set(m.dropna().unique()))
-        for e in P.ENTITIES:
+        for e in P.ENTITIES:  # 文字列への変換は法人ごとに行い、メモリを抑える
+            sel = (df.entity_code == e).to_numpy()
+            exp = to_export(source, df[sel])
+            me = m[sel].reset_index(drop=True)
+            groups = exp.groupby(me).groups
             for month in all_months:
-                idx = groups.get((e, month))
+                idx = groups.get(month)
                 if idx is None and month not in months:
                     continue
                 part = exp.loc[idx].reset_index(drop=True) if idx is not None else exp.iloc[0:0]
@@ -256,7 +258,8 @@ FILE_EFFECTS = {
 
 # ---------------------------------------------------------------- マスタ
 
-def build_masters(customers: pd.DataFrame, fx: pd.DataFrame, months: list[str]) -> dict[str, pd.DataFrame]:
+def build_masters(customers: pd.DataFrame, fx: pd.DataFrame, months: list[str], capacity: pd.DataFrame,
+                  volume_scale: float = 1.0) -> dict[str, pd.DataFrame]:
     entities = pd.DataFrame([dict(entity_code=e, entity_name=v["name"], currency=v["currency"]) for e, v in P.ENTITIES.items()])
     products = pd.DataFrame([dict(product_code=p, product_name=v["name"]) for p, v in P.PRODUCTS.items()])
     org = []
@@ -275,10 +278,15 @@ def build_masters(customers: pd.DataFrame, fx: pd.DataFrame, months: list[str]) 
         for p, pv in P.PRODUCTS.items():
             owners.append(dict(kpi_id="*", entity_code=e, product_code=p, owner=f"{ev['name']}・{pv['name']} 担当（仮）",
                                manager=f"{pv['division'][1]}長（仮）"))
+    ename = {e: v["name"] for e, v in P.ENTITIES.items()}
+    suppliers = pd.DataFrame([dict(supplier_code=c, supplier_name=f"ダミー工業{c[-4:]}", entity_code=e,
+                                   owner=f"購買 {ename[e]}担当{c[-1]}（仮）", manager=f"購買部 {ename[e]}課長（仮）")
+                              for c, e, *_ in P.SUPPLIERS])
     return {
         "entities": entities, "products": products, "org": pd.DataFrame(org),
         "customers": customers.drop(columns=["weight"]), "fx_rates": fx,
-        "targets": build_targets(months), "owners": pd.DataFrame(owners),
+        "targets": build_targets(months, volume_scale), "owners": pd.DataFrame(owners),
+        "suppliers": suppliers, "supplier_capacity": capacity,
     }
 
 
@@ -293,21 +301,26 @@ def generate(scenario: dict, out_root: Path) -> Path:
     seed = int(scenario.get("seed", 20260901))
     world_effects = [e for e in scenario.get("effects", []) if e["type"] not in FILE_EFFECTS]
     file_effects = [e for e in scenario.get("effects", []) if e["type"] in FILE_EFFECTS]
-    months = month_list(P.START_MONTH, P.END_MONTH)
+    as_of = str(scenario.get("as_of", P.AS_OF_BATCH1))
+    as_of2 = str(scenario.get("as_of_batch2", P.AS_OF_BATCH2))
+    start = str(scenario.get("start_month", P.START_MONTH))
+    target_month = str(scenario.get("target_month", P.END_MONTH))
+    scale = float(scenario.get("volume_scale", 1.0))
+    months = month_list(start, target_month)  # 締め済みの月（月次分析の対象）
 
-    world, customers, fx, facts = build_world(seed, world_effects, P.AS_OF_BATCH1)
+    world, customers, fx, facts, capacity = build_world(seed, world_effects, as_of, start, None, scale)
+    months_all = month_list(start, facts["data_end"][:7])  # 当月途中を含む
     for eff in world_effects:
         if eff["type"] == "fx_shock":
             r = fx[(fx.currency == eff["currency"]) & (fx.month == eff["month"])].iloc[0]
             facts["fx_shock"] = {"currency": eff["currency"], "month": eff["month"],
                                  "actual_rate": float(r.actual_rate), "budget_rate": float(r.budget_rate)}
-    world_final = copy.deepcopy(world)
-    for eff in file_effects:
-        if eff["type"] == "correction":
-            eff = {**eff, "updated_at": eff.get("updated_at", "2026-09-10 10:00:00")}
-            apply_correction(world_final, eff, seed, facts)
+    corrections = [e for e in file_effects if e["type"] == "correction"]
+    world_final = {**world, "orders": world["orders"].copy()} if corrections else world
+    for eff in corrections:
+        apply_correction(world_final, {**eff, "updated_at": eff.get("updated_at", "2026-09-10 10:00:00")}, seed, facts)
 
-    files = build_files(world, months)
+    files = build_files(world, months_all)
     for eff in file_effects:
         FILE_EFFECTS[eff["type"]](files, eff, facts, world_final=world_final)
 
@@ -316,25 +329,28 @@ def generate(scenario: dict, out_root: Path) -> Path:
         shutil.rmtree(out)
     landing = out / "landing"
     written = write_files(files, landing)
-    masters = build_masters(customers, fx, months)
+    masters = build_masters(customers, fx, months_all, capacity, scale)
     mdir = landing / "batch_01" / "master"
     mdir.mkdir(parents=True, exist_ok=True)
     for name, df in masters.items():
         df.to_csv(mdir / f"{name}.csv", index=False, encoding="utf-8", lineterminator="\n")
 
-    truth = compute_truth(world_final, fx, P.AS_OF_BATCH1, months)
+    truth = compute_truth(world_final, fx, as_of, months_all)  # 当月途中の値も含める（当月進捗の検証用）
     truth.to_csv(out / "truth.csv", index=False, lineterminator="\n", float_format="%.10g")
+    supplier_truth(world_final, capacity, months[-2:]).to_csv(out / "truth_supplier.csv", index=False,
+                                                                lineterminator="\n", float_format="%.10g")
     (out / "facts.json").write_text(json.dumps(facts, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
 
     batches = sorted({p.name for p in landing.iterdir() if p.is_dir()})
-    runs = [{"landing": ["landing/batch_01"], "as_of": P.AS_OF_BATCH1}]
+    runs = [{"landing": ["landing/batch_01"], "as_of": as_of}]
     if "batch_02" in batches:
-        runs.append({"landing": ["landing/batch_01", "landing/batch_02"], "as_of": P.AS_OF_BATCH2})
+        runs.append({"landing": ["landing/batch_01", "landing/batch_02"], "as_of": as_of2})
     hashes = {str(p.relative_to(out)): _sha256(p) for p in sorted(landing.rglob("*")) if p.is_file()}
     manifest = {
         "scenario": sid, "name": scenario.get("name"), "seed": seed, "generator_version": GENERATOR_VERSION,
-        "target_month": P.END_MONTH, "runs": runs, "files": len(written), "file_hashes": hashes,
-        "note": "ダミーデータ。値・列名・組織・顧客・目標はすべて架空。",
+        "target_month": target_month, "data_end": facts["data_end"], "volume_scale": scale,
+        "order_lines": int(len(world["orders"])), "runs": runs, "files": len(written), "file_hashes": hashes,
+        "note": "ダミーデータ。値・列名・組織・顧客・サプライヤ・目標はすべて架空。",
     }
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return out

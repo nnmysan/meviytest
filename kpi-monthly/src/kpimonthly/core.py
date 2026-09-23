@@ -14,7 +14,7 @@ GRAIN = ["month", "entity_code", "product_code", "section_code", "customer_id"]
 
 VIEWS_SQL = """
 CREATE OR REPLACE VIEW v_order_lines AS
-SELECT o.*, strftime(o.order_date, '%Y-%m') AS month,
+SELECT o.*, strftime(o.order_date, '%Y-%m') AS month, CAST(o.order_date AS DATE) AS day, hour(o.order_ts) AS hour,
        o.amount_local * f.budget_rate AS amount_jpy,
        o.amount_local * f.actual_rate AS amount_jpy_actual,
        (o.amount_local - o.cost_local) * f.budget_rate AS gross_profit_jpy
@@ -25,23 +25,37 @@ CREATE OR REPLACE VIEW v_quotes AS
 WITH first_order AS (
   SELECT quote_id, MIN(order_date) AS first_order_date
   FROM orders WHERE status <> '取消' AND quote_id IS NOT NULL GROUP BY quote_id)
-SELECT q.*, strftime(q.quote_date, '%Y-%m') AS month,
+SELECT q.*, strftime(q.quote_date, '%Y-%m') AS month, CAST(q.quote_date AS DATE) AS day,
        CASE WHEN date_diff('day', q.quote_date, fo.first_order_date) BETWEEN 0 AND 30 THEN 1 ELSE 0 END AS converted_30d
 FROM quotes q LEFT JOIN first_order fo USING (quote_id);
 
 CREATE OR REPLACE VIEW v_due_lines AS
 SELECT s.order_id, s.line_no, s.due_date, s.ship_date, o.entity_code, o.product_code, o.section_code, o.customer_id,
-       strftime(s.due_date, '%Y-%m') AS month,
+       o.supplier_code, o.material, o.part_size, o.surface, o.heat,
+       strftime(s.due_date, '%Y-%m') AS month, CAST(s.due_date AS DATE) AS day,
        CASE WHEN s.ship_date IS NOT NULL AND s.ship_date <= s.due_date THEN 1 ELSE 0 END AS on_time
 FROM shipments s JOIN orders o USING (order_id, line_no)
 WHERE o.status <> '取消' AND s.due_date <= DATE '{as_of}';
 
 CREATE OR REPLACE VIEW v_shipped_lines AS
 SELECT s.order_id, s.line_no, s.ship_date, o.entity_code, o.product_code, o.section_code, o.customer_id,
-       strftime(s.ship_date, '%Y-%m') AS month, COALESCE(d.cnt, 0) AS defect_count
+       o.supplier_code, o.material, o.part_size, o.surface, o.heat,
+       strftime(s.ship_date, '%Y-%m') AS month, CAST(s.ship_date AS DATE) AS day, COALESCE(d.cnt, 0) AS defect_count
 FROM shipments s JOIN orders o USING (order_id, line_no)
 LEFT JOIN (SELECT order_id, line_no, COUNT(*) AS cnt FROM defects GROUP BY 1, 2) d USING (order_id, line_no)
 WHERE s.ship_date IS NOT NULL AND o.status <> '取消';
+
+-- サプライヤ負荷：出荷日ベース。出荷済みは出荷日、未出荷は納期（納期超過の残は取込日に計上）
+CREATE OR REPLACE VIEW v_supply_lines AS
+SELECT o.order_id, o.line_no, o.entity_code, o.product_code, o.supplier_code, o.material, o.part_size, o.surface, o.heat,
+       o.quantity, o.cost_local * f.budget_rate AS purchase_jpy, s.due_date, s.ship_date,
+       CASE WHEN s.ship_date IS NOT NULL THEN CAST(s.ship_date AS DATE)
+            WHEN s.due_date < DATE '{as_of}' THEN DATE '{as_of}'
+            ELSE CAST(s.due_date AS DATE) END AS plan_day,
+       s.ship_date IS NULL AS planned
+FROM orders o JOIN shipments s USING (order_id, line_no)
+LEFT JOIN fx_rates f ON f.currency = o.currency AND f.month = strftime(o.order_date, '%Y-%m')
+WHERE o.status <> '取消';
 """
 
 
@@ -88,6 +102,43 @@ def compute_fine(con: duckdb.DuckDBPyConnection, kpis: list[dict]) -> pd.DataFra
     if "actual_fx" not in fine.columns:
         fine["actual_fx"] = float("nan")
     return fine
+
+
+def compute_daily(con: duckdb.DuckDBPyConnection, kpis: list[dict], start: str, end: str) -> pd.DataFrame:
+    """日別のKPI（分子・分母）。月次と同じ定義を日単位で集計する。"""
+    parts = []
+    for k in kpis:
+        den = k.get("denominator") or "NULL"
+        extras = "".join(f", {expr} AS {name}" for name, expr in (k.get("extra_measures") or {}).items())
+        cond = [f"day BETWEEN DATE '{start}' AND DATE '{end}'"] + ([k["where"]] if k.get("where") else [])
+        parts.append(con.execute(f"""
+            SELECT '{k['id']}' AS kpi_id, day, entity_code, product_code, section_code,
+                   CAST({k['numerator']} AS DOUBLE) AS num, CAST({den} AS DOUBLE) AS den {extras}
+            FROM {k['view']} WHERE {' AND '.join(cond)} GROUP BY ALL ORDER BY ALL""").df())
+    out = pd.concat(parts, ignore_index=True)
+    if "actual_fx" not in out.columns:
+        out["actual_fx"] = float("nan")
+    out["day"] = pd.to_datetime(out["day"]).dt.strftime("%Y-%m-%d")
+    return out
+
+
+def compute_hourly(con: duckdb.DuckDBPyConnection, kpis: list[dict], start: str, end: str) -> pd.DataFrame:
+    """時間別のKPI。受注日時を持つ受注明細ベースのKPIだけが対象（見積・納期・不良は日別まで）。"""
+    parts = []
+    for k in kpis:
+        if k["view"] != "v_order_lines":
+            continue
+        den = k.get("denominator") or "NULL"
+        cond = [f"day BETWEEN DATE '{start}' AND DATE '{end}'", "hour IS NOT NULL"] + ([k["where"]] if k.get("where") else [])
+        parts.append(con.execute(f"""
+            SELECT '{k['id']}' AS kpi_id, day, hour, entity_code, product_code, section_code,
+                   CAST({k['numerator']} AS DOUBLE) AS num, CAST({den} AS DOUBLE) AS den
+            FROM {k['view']} WHERE {' AND '.join(cond)} GROUP BY ALL ORDER BY ALL""").df())
+    if not parts:
+        return pd.DataFrame(columns=["kpi_id", "day", "hour", "entity_code", "product_code", "section_code", "num", "den"])
+    out = pd.concat(parts, ignore_index=True)
+    out["day"] = pd.to_datetime(out["day"]).dt.strftime("%Y-%m-%d")
+    return out
 
 
 def add_dims(fine: pd.DataFrame, masters: dict) -> pd.DataFrame:

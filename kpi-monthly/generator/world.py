@@ -69,12 +69,20 @@ def gen_fx(seed: int, months: list[str], effects: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _boff(d: np.ndarray, n: np.ndarray) -> np.ndarray:
+    """営業日（平日）で n 日ずらす。"""
+    if len(d) == 0:
+        return d
+    return np.busday_offset(d.astype("datetime64[D]"), n, roll="forward").astype("datetime64[ns]")
+
+
 def section_of(entity: str, product: str) -> str:
     team = P.PRODUCTS[product]["team"][0]  # T11 など
     return f"SEC{team[1:]}{1 if entity == 'JP' else 2}"
 
 
-def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of) -> dict:
+def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of, data_end: str | None = None,
+             volume_scale: float = 1.0, combos: dict | None = None) -> dict:
     rng = np.random.default_rng([seed, t, ei, pi])
     prm = P.PRODUCTS[p]
     cur = P.ENTITIES[e]["currency"]
@@ -82,6 +90,12 @@ def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of)
     yymm = month[2:4] + month[5:7]
 
     lam = P.BASE_ORDERS[e][p] * (1 + P.GROWTH_PER_YEAR) ** (t / 12) * P.SEASON.get(e, {}).get(int(month[5:]), 1.0)
+    lam *= volume_scale
+    bdays = business_days(month)
+    if data_end is not None:  # 当月途中までのデータ（毎朝の更新を想定）
+        full = len(bdays)
+        bdays = bdays[bdays <= np.datetime64(data_end)]
+        lam *= len(bdays) / full
     for eff in _effects(effects, "demand"):
         if _matches(eff, month, e, p):
             lam *= eff["factor"]
@@ -92,8 +106,8 @@ def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of)
     for eff in _effects(effects, "product_start"):
         if _matches(eff, None, e, p) and month < eff["start_month"]:
             n = 0
-
-    bdays = business_days(month)
+    if len(bdays) == 0:
+        n = 0
     weights = cust_e["weight"].to_numpy() / cust_e["weight"].sum()
     cust_ids = cust_e["customer_id"].to_numpy()
     cust_size = dict(zip(cust_e["customer_id"], cust_e["size_class"]))
@@ -125,6 +139,14 @@ def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of)
     u_cust = rng.choice(cust_ids, n_u, p=weights)
     u_amt = rng.lognormal(mu, P.LINE_SIGMA, n_u) * 2.5
 
+    # --- ここから追加項目（受注時刻・数量・仕様・サプライヤ）。既存の乱数列の後に引く
+    hw = np.array(P.HOUR_WEIGHTS, dtype=float)
+    hour = rng.choice(24, n, p=hw / hw.sum())
+    minute = rng.integers(0, 3600, n)
+    qw = np.array(P.QTY_WEIGHTS, dtype=float)
+    qty = np.array(P.QTY_VALUES)[rng.choice(len(P.QTY_VALUES), L, p=qw / qw.sum())]
+    u_combo = rng.random(L)
+
     order_ids = np.array([f"SO{e}{yymm}{pi}{i + 1:04d}" for i in range(n)], dtype=object)
     quote_ids = np.array([f"Q{e}{yymm}{pi}{i + 1:04d}" for i in range(n)], dtype=object)
 
@@ -138,13 +160,21 @@ def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of)
     cost = np.round(local * (1 - margin), dec)
 
     order_date = order_day[oi]
+    order_ts = (order_day + hour.astype("timedelta64[h]") + minute.astype("timedelta64[s]"))[oi]
     upd = (order_day + DAY + np.timedelta64(9, "h") + upd_min.astype("timedelta64[m]"))[oi]
     orders = pd.DataFrame({
         "order_id": order_ids[oi], "line_no": line_no, "order_date": order_date, "quote_id": quote_ids[oi],
         "customer_id": cust[oi], "product_code": p, "entity_code": e, "section_code": section_of(e, p),
         "amount_local": local, "cost_local": cost, "currency": cur,
         "status": np.where(cancel[oi], "取消", "受注"), "updated_at": upd,
+        "order_ts": order_ts, "quantity": qty,
     })
+    if combos is not None and L:
+        cp = combos["prob"](e, p, month)
+        idx = np.minimum(np.searchsorted(np.cumsum(cp), u_combo), len(cp) - 1)
+        table = combos["table"][(e, p)]
+        for col in ("supplier_code", "material", "part_size", "surface", "heat"):
+            orders[col] = table[col].to_numpy()[idx]
 
     # 見積：受注に至った見積（受注日の0〜10日前）＋受注に至らなかった見積
     q_amt = pd.Series(local).groupby(oi).sum().reindex(range(n), fill_value=0).to_numpy()
@@ -159,14 +189,17 @@ def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of)
     quotes["updated_at"] = quotes["quote_date"] + np.timedelta64(17, "h")
 
     # 納期・出荷
-    due = order_date + lead * DAY
+    # 納期・出荷日は営業日で数える（暦日で足して土日を月曜に寄せると月曜に出荷が偏るため）
+    lead_bd = np.maximum(1, np.round(lead * 5 / 7)).astype(int)
+    due = _boff(order_date, lead_bd)
     due_month = due.astype("datetime64[M]").astype(str)
     p_late = np.full(L, P.LATE_PROB[e] + (P.LATE_PROB_SWD_ADD if p == "SWD" else 0.0))
     for eff in _effects(effects, "late_prob"):
         if _matches(eff, None, e, p):
             p_late[np.isin(due_month, eff["months"])] = eff["value"]
     is_late = u_late < p_late
-    ship = np.where(is_late, due + late_d * DAY, np.maximum(order_date, due - early_d * DAY))
+    ship = np.where(is_late, _boff(due, np.maximum(1, np.round(late_d * 5 / 7)).astype(int)),
+                    np.maximum(order_date, _boff(due, -np.round(early_d * 5 / 7).astype(int))))
     as_of64 = np.datetime64(as_of)
     live = ~cancel[oi]
     ship_known = ship <= as_of64
@@ -194,6 +227,65 @@ def gen_cell(seed, t, month, ei, e, pi, p, cust_e: pd.DataFrame, effects, as_of)
     return {"orders": orders, "quotes": quotes, "shipments": shipments, "defects": defects}
 
 
+def supplier_combos(seed: int, volume_scale: float, effects: list[dict]) -> dict:
+    """サプライヤ×材質×サイズ×表面処理×熱処理 の能力マスタと、明細をサプライヤに割り当てる確率を作る。"""
+    rng = np.random.default_rng([seed, 50_000])
+    rows = []
+    for code, e, prods, mats, sizes in P.SUPPLIERS:
+        for m in mats:
+            spec = P.MATERIAL_SPEC[m]
+            for sz in sizes:
+                for sf in spec["surface"]:
+                    for ht in spec["heat"]:
+                        rows.append(dict(supplier_code=code, entity_code=e, products=prods, material=m, part_size=sz,
+                                         surface=sf, heat=ht, w=float(rng.lognormal(0, 0.6))))
+    cap = pd.DataFrame(rows)
+    cap["util"] = rng.uniform(*P.CAPACITY_UTIL_RANGE, len(cap))
+    cap["util_qty"] = cap["util"] * rng.uniform(0.75, 1.0, len(cap))
+    # 基準の需要（季節性なし・最新月の成長水準）から、日あたりの期待明細数を計算
+    lines_per_order = 1 + sum(min(k, P.MAX_EXTRA_LINES) * math.exp(-P.LINES_POISSON) * P.LINES_POISSON ** k / math.factorial(k)
+                              for k in range(60))
+    mean_qty = float(np.dot(P.QTY_VALUES, P.QTY_WEIGHTS) / sum(P.QTY_WEIGHTS))
+    growth = (1 + P.GROWTH_PER_YEAR) ** (35 / 12)
+    table, base_prob = {}, {}
+    exp_daily = np.zeros(len(cap))
+    for e in P.ENTITIES:
+        for p in P.PRODUCTS:
+            sel = cap[(cap.entity_code == e) & cap.products.map(lambda x: p in x)]
+            if sel.empty:
+                continue
+            n_sup = sel.supplier_code.nunique()
+            w = sel.w / sel.groupby("supplier_code").w.transform("sum") / n_sup
+            table[(e, p)] = sel.reset_index()
+            base_prob[(e, p)] = w.to_numpy()
+            lines_day = P.BASE_ORDERS[e][p] * growth * volume_scale * lines_per_order * (1 - P.CANCEL_RATE) / P.REF_BUSINESS_DAYS
+            exp_daily[sel.index] += w.to_numpy() * lines_day
+    cap["cap_count_day"] = np.round(exp_daily / cap["util"], 3)
+    cap["cap_qty_day"] = np.round(exp_daily * mean_qty / cap["util_qty"], 3)
+
+    def prob(e, p, month):
+        pr = base_prob[(e, p)].copy()
+        tb = table[(e, p)]
+        for eff in _effects(effects, "combo_demand"):
+            if month not in eff["months"]:
+                continue
+            mask = np.ones(len(tb), dtype=bool)
+            for k in ("supplier_code", "material", "part_size", "surface", "heat"):
+                if k in eff:
+                    mask &= (tb[k] == eff[k]).to_numpy()
+            pr[mask] *= eff["factor"]
+        return pr / pr.sum()
+
+    master = cap[["supplier_code", "material", "part_size", "surface", "heat", "cap_count_day", "cap_qty_day"]].copy()
+    for eff in _effects(effects, "capacity_change"):
+        mask = master.supplier_code == eff["supplier_code"]
+        for k in ("material", "part_size", "surface", "heat"):
+            if k in eff:
+                mask &= master[k] == eff[k]
+        master.loc[mask, ["cap_count_day", "cap_qty_day"]] *= eff["factor"]
+    return {"table": table, "prob": prob, "master": master}
+
+
 def add_large_order(world: dict, eff: dict, customers: pd.DataFrame, seed: int, facts: dict) -> None:
     month, e, p = eff["month"], eff["entity"], eff["product"]
     o = world["orders"]
@@ -210,11 +302,13 @@ def add_large_order(world: dict, eff: dict, customers: pd.DataFrame, seed: int, 
     oid = f"SO{e}{month[2:4]}{month[5:7]}{pi}L001"
     qid = f"Q{e}{month[2:4]}{month[5:7]}{pi}L001"
     due = day + pd.Timedelta(days=P.PRODUCTS[p]["lead"])
+    spec = {k: cell.iloc[0][k] for k in ("supplier_code", "material", "part_size", "surface", "heat") if k in cell.columns}
     world["orders"] = pd.concat([o, pd.DataFrame([{
         "order_id": oid, "line_no": 1, "order_date": day, "quote_id": qid, "customer_id": cust.customer_id,
         "product_code": p, "entity_code": e, "section_code": section_of(e, p), "amount_local": local,
         "cost_local": round(local * (1 - P.PRODUCTS[p]["margin"]), dec), "currency": cur, "status": "受注",
-        "updated_at": day + pd.Timedelta(days=1, hours=10)}])], ignore_index=True)
+        "updated_at": day + pd.Timedelta(days=1, hours=10), "order_ts": day + pd.Timedelta(hours=10),
+        "quantity": 1, **spec}])], ignore_index=True)
     world["quotes"] = pd.concat([world["quotes"], pd.DataFrame([{
         "quote_id": qid, "quote_date": day - pd.Timedelta(days=5), "customer_id": cust.customer_id, "product_code": p,
         "entity_code": e, "section_code": section_of(e, p), "amount_local": local, "currency": cur,
@@ -269,27 +363,36 @@ def apply_correction(world: dict, eff: dict, seed: int, facts: dict) -> set[str]
     return set(chosen)
 
 
-def build_world(seed: int, effects: list[dict], as_of: str) -> tuple[dict, pd.DataFrame, pd.DataFrame, dict]:
-    months = month_list(P.START_MONTH, P.END_MONTH)
+def build_world(seed: int, effects: list[dict], as_of: str, start_month: str | None = None, data_end: str | None = None,
+                volume_scale: float = 1.0) -> tuple[dict, pd.DataFrame, pd.DataFrame, dict, pd.DataFrame]:
+    start_month = start_month or P.START_MONTH
+    data_end = data_end or str((pd.Timestamp(as_of) - pd.Timedelta(days=1)).date())
+    end_month = data_end[:7]
+    months = month_list(start_month, end_month)
+    t0 = len(month_list(P.START_MONTH, start_month)) - 1
     customers = gen_customers(seed)
-    fx = gen_fx(seed, months, effects)
+    fx = gen_fx(seed, month_list(P.START_MONTH, end_month), effects)
+    fx = fx[fx.month >= start_month].reset_index(drop=True)
+    combos = supplier_combos(seed, volume_scale, effects)
     parts: dict[str, list] = {k: [] for k in ("orders", "quotes", "shipments", "defects")}
-    for t, month in enumerate(months):
+    for i, month in enumerate(months):
+        t = t0 + i
         for ei, e in enumerate(P.ENTITIES):
             cust_e = customers[customers.entity_code == e]
             for pi, p in enumerate(P.PRODUCTS):
-                cell = gen_cell(seed, t, month, ei, e, pi, p, cust_e, effects, as_of)
+                cell = gen_cell(seed, t, month, ei, e, pi, p, cust_e, effects, as_of,
+                                data_end if month == end_month else None, volume_scale, combos)
                 for k, v in cell.items():
                     if len(v):
                         parts[k].append(v)
     world = {k: pd.concat(v, ignore_index=True) for k, v in parts.items()}
     # 分析開始月より前の見積は出力対象外（抽出期間外）
-    world["quotes"] = world["quotes"][world["quotes"].quote_date >= pd.Timestamp(P.START_MONTH + "-01")].reset_index(drop=True)
-    facts: dict = {}
+    world["quotes"] = world["quotes"][world["quotes"].quote_date >= pd.Timestamp(start_month + "-01")].reset_index(drop=True)
+    facts: dict = {"data_end": data_end, "start_month": start_month, "volume_scale": volume_scale}
     for eff in _effects(effects, "large_order"):
         add_large_order(world, eff, customers, seed, facts)
     for eff in _effects(effects, "force_defects"):
         force_defects(world, eff, facts)
     for k in world:
         world[k] = world[k].sort_values(world[k].columns[0], kind="stable").reset_index(drop=True)
-    return world, customers, fx, facts
+    return world, customers, fx, facts, combos["master"]

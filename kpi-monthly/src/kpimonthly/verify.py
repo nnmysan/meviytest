@@ -260,12 +260,88 @@ def ck_idempotent(spec, res, f, truth, facts, runs):
     return not diff.any() and len(m) == len(a), f"{len(m)} 値を比較、差異 {int(diff.sum())}"
 
 
+def _sup(f):
+    sup = f.get("supplier") or {}
+    if not sup.get("enabled"):
+        raise KeyError("サプライヤ分析が実行されていません")
+    return sup
+
+
+def ck_supplier_truth(spec, res, f, truth, facts, runs):
+    """締め月の充足率（全組み合わせ＋サプライヤ全体）が、生成元から独立に計算した値と一致すること。"""
+    t = res.frames["_truth_supplier"]
+    t = t[t.month == spec["month"]]
+    tbl = _sup(f)["bases"]["month"]
+    keys = ["supplier_code", "material", "part_size", "surface", "heat"]
+    m = t[t.material != "*"].merge(tbl[keys + ["load_count", "load_qty"]], on=keys, suffixes=("_t", "_p"))
+    sp = tbl.groupby("supplier_code")[["lines", "qty", "cap_lines", "cap_qty"]].sum()
+    sp = (sp.lines / sp.cap_lines).rename("load_count_p").reset_index()
+    ms = t[t.material == "*"].merge(sp, on="supplier_code")
+    bad = int((~np.isclose(m.load_count_t, m.load_count_p, rtol=1e-9)).sum() + (~np.isclose(m.load_qty_t, m.load_qty_p, rtol=1e-9)).sum()
+              + (~np.isclose(ms.load_count, ms.load_count_p, rtol=1e-9)).sum())
+    return bad == 0 and len(m) > 0, f"組み合わせ {len(m)}・サプライヤ {len(ms)} の充足率を照合、不一致 {bad}"
+
+
+def ck_supplier_eval(spec, res, f, truth, facts, runs):
+    ev = _sup(f)["evals"]
+    r = ev[(ev.scope_key == spec["scope_key"]) & (ev.basis == spec["basis"])]
+    if r.empty:
+        return False, "評価行なし（最低件数に満たない可能性）"
+    v = float(r.max_load.iloc[0])
+    return v >= spec["load_ge"], f"{spec['basis']} の充足率 {v:.0%}（{r.period.iloc[0]}）"
+
+
+def ck_supplier_action(spec, res, f, truth, facts, runs):
+    acts = [a for a in f["actions"] if a.get("category") == "供給" and a["scope_key"] == spec["scope_key"]]
+    if not acts:
+        return False, "供給のアクション提案なし"
+    a = acts[0]
+    types = [p["type"] for p in a.get("proposals", [])]
+    problems = [f"「{x}」がない" for x in spec.get("include", []) if x not in types]
+    problems += [f"「{x}」があってはいけない" for x in spec.get("exclude", []) if x in types]
+    if "candidate" in spec and not any(spec["candidate"] in (p.get("basis") or "") for p in a.get("proposals", [])):
+        problems.append(f"振替候補に {spec['candidate']} がない")
+    if "owner_contains" in spec and spec["owner_contains"] not in a["owner"]:
+        problems.append(f"担当={a['owner']}")
+    return not problems, f"打ち手: {types} / 担当 {a['owner']}・{a['manager']} / 期限 {a['due_date']}" + (f" 問題: {problems}" if problems else "")
+
+
+def ck_notification(spec, res, f, truth, facts, runs):
+    ns = [n for n in _sup(f)["notifications"] if n["scope_key"] == spec["scope_key"]]
+    if not ns:
+        return False, "通知なし"
+    n = ns[0]
+    ok = n["reason"] == spec.get("reason", n["reason"]) and spec.get("to_contains", "") in n["to"] and spec.get("cc_contains", "") in n["cc"]
+    return ok, f"{n['channel']} 宛先 {n['to']} / CC {n['cc']} / {n['reason']}: {n['title']}"
+
+
+def ck_notify_rerun(spec, res, f, truth, facts, runs):
+    """同じデータで翌朝もう一度実行しても、同じ事象は再通知されないこと（状態を引き継ぐ）。"""
+    cfg = res.frames["_cfg"]
+    r2 = run(cfg, res.frames["_landing"], res.manifest["target_month"], res.manifest["as_of"], res.out_dir.parent / "_rerun",
+             res.out_dir.parent / "state", write_dashboard=False)
+    ns = [n for n in r2.frames["supplier"]["notifications"] if n["scope_key"] == spec["scope_key"]]
+    shutil.rmtree(res.out_dir.parent / "_rerun", ignore_errors=True)
+    still = any(a["scope_key"] == spec["scope_key"] for a in r2.frames["supplier"]["alerts"])
+    return not ns and still, f"再実行: アラート継続={still}、再通知 {len(ns)} 件"
+
+
+def ck_pace_truth(spec, res, f, truth, facts, runs):
+    p = f["pace"]
+    r = p[(p.kpi_id == spec["kpi"]) & (p.scope_key == spec["scope_key"])]
+    t = truth[(truth.kpi_id == spec["kpi"]) & (truth.scope_key == spec["scope_key"]) & (truth.month == r.month.iloc[0])]
+    got, exp = float(r.mtd.iloc[0]), float(t.value.iloc[0])
+    return abs(got - exp) <= 1e-8 * max(1, abs(exp)), f"当月累計 {got:,.0f}（正解 {exp:,.0f}）、着地見込み {float(r.forecast.iloc[0]):,.0f}・見込み達成率 {float(r.achievement_forecast.iloc[0]):.0%}"
+
+
 CHECKS = {
     "status": ck_status, "truth_match": ck_truth_match, "alert": ck_alert, "alert_field": ck_alert_field,
     "no_alert": ck_no_alert, "dq": ck_dq, "no_dq": ck_no_dq, "field": ck_field, "manifest": ck_manifest,
     "restatement": ck_restatement, "action": ck_action, "quarantine": ck_quarantine,
     "ratio_of_truth": ck_ratio_of_truth, "dashboard_has_kpi": ck_dashboard_has_kpi, "fx_ratio": ck_fx_ratio,
-    "idempotent": ck_idempotent,
+    "idempotent": ck_idempotent, "supplier_truth": ck_supplier_truth, "supplier_eval": ck_supplier_eval,
+    "supplier_action": ck_supplier_action, "notification": ck_notification, "notify_rerun": ck_notify_rerun,
+    "pace_truth": ck_pace_truth,
 }
 
 
@@ -293,6 +369,8 @@ def run_scenario(sid: str, data_root: Path, out_root: Path, regenerate: bool = T
         res = run(cfg, landing, gm["target_month"], r["as_of"], odir / f"run{i}", odir / "state",
                   review_dir=cfg.root / "config" / "review" / "dummy", write_dashboard=write_dashboard)
         res.frames["_cfg"], res.frames["_landing"] = cfg, landing
+        ts = sdir / "truth_supplier.csv"
+        res.frames["_truth_supplier"] = pd.read_csv(ts) if ts.exists() else pd.DataFrame()
         runs.append(res)
     results = evaluate_checks(scn, runs, truth, facts)
     return {"id": sid, "name": scn["name"], "description": scn.get("description", ""), "effects": scn.get("effects", []),

@@ -43,8 +43,11 @@ def sha256(path: Path) -> str:
 
 
 def _norm(s: pd.Series) -> pd.Series:
-    """NFKC正規化（全角数字・全角英字・全角記号を半角へ）と前後空白の除去。"""
-    return s.map(lambda x: unicodedata.normalize("NFKC", x).strip() if not x.isascii() else x.strip())
+    """NFKC正規化（全角数字・全角英字・全角記号を半角へ）と前後空白の除去。
+    大量行でも速いよう、値の種類ごとに1回だけ変換する。"""
+    codes, uniques = pd.factorize(s, use_na_sentinel=False)
+    conv = pd.array([u.strip() if u.isascii() else unicodedata.normalize("NFKC", u).strip() for u in uniques], dtype="str")
+    return pd.Series(conv.take(codes), index=s.index)
 
 
 def _decode(raw: bytes, declared: str) -> tuple[str, str]:
@@ -109,7 +112,8 @@ def load_masters(landing_dirs: list[Path], src_cfg: dict, dq: DQ) -> dict[str, p
         if spec.get("key") and df[spec["key"]].duplicated().any():
             dq.add("master_error", "P1", f"マスタ {name} のキー {spec['key']} が重複しています", file=str(path), blocking=True)
         masters[name] = df
-    for name, cols in {"fx_rates": ["budget_rate", "actual_rate"], "targets": ["target"]}.items():
+    for name, cols in {"fx_rates": ["budget_rate", "actual_rate"], "targets": ["target"],
+                       "supplier_capacity": ["cap_count_day", "cap_qty_day"]}.items():
         if name in masters:
             for c in cols:
                 masters[name][c] = pd.to_numeric(masters[name][c])
@@ -246,22 +250,18 @@ def ingest(landing_dirs: list[Path], cfg, masters: dict, dq: DQ) -> tuple[dict, 
         if not parts:
             data[source] = pd.DataFrame(columns=cols + ["_file", "_order", "_entity_file", "_month_file"])
             continue
-        raw = pd.concat(parts, ignore_index=True)
-        parsed, reasons = _parse(raw, spec)
-        bad = reasons != ""
-        if bad.any():
-            q = raw.loc[bad, ["_file", "_row"] + cols].copy()
-            q.insert(0, "source", source)
-            q.insert(1, "reason", reasons[bad])
-            quarantine.append(q)
-            for (f, e, m), n in raw.loc[bad].groupby(["_file", "_entity_file", "_month_file"]).size().items():
-                examples = "; ".join(sorted(set(reasons[bad & (raw["_file"] == f)]))[:3])
-                dq.add("quarantine_rows", "P2", f"{n} 行を隔離しました（例: {examples}）", source=source, entity=e,
-                       month=m, file=f, count=int(n))
-        df = parsed[~bad].copy()
-        for c in ("_file", "_order", "_entity_file", "_month_file"):
-            df[c] = raw.loc[~bad, c]
-
+        # 大量行でもメモリを抑えるため、約100万行ずつ型変換してから結合する
+        chunks, buf, n = [], [], 0
+        for part in parts + [None]:
+            if part is not None:
+                buf.append(part)
+                n += len(part)
+            if buf and (part is None or n >= 1_000_000):
+                chunks.append(_parse_chunk(pd.concat(buf, ignore_index=True), spec, source, quarantine, dq))
+                buf, n = [], 0
+        parts.clear()
+        df = pd.concat(chunks, ignore_index=True)
+        del chunks
         # 完全重複（全列一致）。同一ファイル内の重複は品質問題、別ファイル（再抽出・再送）との重複は想定内。
         in_file = df.duplicated(subset=cols + ["_file"], keep="first")
         if in_file.any():
@@ -295,8 +295,27 @@ def ingest(landing_dirs: list[Path], cfg, masters: dict, dq: DQ) -> tuple[dict, 
     return data, qdf, pd.DataFrame(log)
 
 
+def _parse_chunk(raw: pd.DataFrame, spec: dict, source: str, quarantine: list, dq: DQ) -> pd.DataFrame:
+    cols = list(spec["columns"])
+    parsed, reasons = _parse(raw, spec)
+    bad = reasons != ""
+    if bad.any():
+        q = raw.loc[bad, ["_file", "_row"] + cols].copy()
+        q.insert(0, "source", source)
+        q.insert(1, "reason", reasons[bad])
+        quarantine.append(q)
+        for (f, e, m), n in raw.loc[bad].groupby(["_file", "_entity_file", "_month_file"]).size().items():
+            examples = "; ".join(sorted(set(reasons[bad & (raw["_file"] == f)]))[:3])
+            dq.add("quarantine_rows", "P2", f"{n} 行を隔離しました（例: {examples}）", source=source, entity=e,
+                   month=m, file=f, count=int(n))
+    df = parsed[~bad].copy()
+    for c in ("_file", "_order", "_entity_file", "_month_file"):
+        df[c] = raw.loc[~bad, c]
+    return df
+
+
 def _map_codes(data: dict, src_cfg: dict, masters: dict, dq: DQ) -> None:
-    keys = {"products": "product_code", "entities": "entity_code", "org": "section_code"}
+    keys = {"products": "product_code", "entities": "entity_code", "org": "section_code", "suppliers": "supplier_code"}
     for source, spec in src_cfg["sources"].items():
         df = data[source]
         for name, c in spec["columns"].items():

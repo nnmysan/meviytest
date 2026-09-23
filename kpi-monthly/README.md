@@ -1,7 +1,13 @@
 # 月次KPI管理（kpi-monthly）
 
-自社システムのCSVを取り込み、月次KPIの集計・前月からの変化の分析・アラート・アクション提案までを行い、
+自社システムのCSVを**毎朝**取り込み、KPIの集計・変化の分析・アラート・アクション提案までを行い、
 Power BI（または DOMO）と確認用HTMLダッシュボードに出力する仕組みです。
+
+- 月次：締め月の前月差・前年同月比・目標差・季節性を考慮した急変・要因分解（定例用）
+- 毎朝：当月の進捗と月末の着地見込み、日別・時間別の推移（全期間／半年／四半期／1ヶ月／1週間／1日）
+- サプライヤ：生産充足率（出荷÷供給能力、件数・数量）を材質・サイズ・表面処理・熱処理ごとに監視。80%を超えたら
+  アラートと打ち手（振替・拡大交渉・平準化・新規開拓）を出し、サプライヤ担当と上司への Teams 通知予定を作成
+- ダウンロード：画面の各表・グラフを CSV／Excel で保存。集計結果一式は Excel ブックでも出力
 
 > **現在はダミーデータで検証中です。** KPI定義・列名・組織・顧客・目標・アラート閾値はすべて**仮**で、
 > 会社の実際の定義ではありません。本番用の設定（`config/*/prod`）は、承認されるまで実行できないようにしています。
@@ -36,19 +42,19 @@ pip install -r requirements.txt
 # 1) ダミーデータを作る（シナリオ S0 = 通常推移。all で全シナリオ）
 python -m generator.generate --scenario S0 --out data/dummy
 
-# 2) 月次パイプラインを実行（対象月 2026-08、取込日 2026-09-08）
+# 2) パイプラインを実行（取込日 2026-09-08。締め月は省略すると取込日の前月＝2026-08）
 PYTHONPATH=src python -m kpimonthly.pipeline \
-  --landing data/dummy/S0/landing/batch_01 --target-month 2026-08 --as-of 2026-09-08 --out out/S0
+  --landing data/dummy/S0/landing/batch_01 --as-of 2026-09-08 --out out/S0
 
 # 3) out/S0/dashboard.html をブラウザで開く。Power BI は out/S0/marts/ をフォルダ接続で読み込む
 
-# デモ（納期遅延・粗利率低下・大口案件などを同時に含む月）
-./scripts/run_demo.sh
+# デモ（受注明細 月20万行×25か月、納期遅延・粗利率低下・サプライヤ逼迫などを同時に含む。約10分）
+./scripts/run_demo.sh            # 小さく試す場合: ./scripts/run_demo.sh DEMO
 
-# 検証シナリオ（S0〜S18）を全件実行して照合
+# 検証シナリオ（S0〜S21）を全件実行して照合
 PYTHONPATH=src:. python -m kpimonthly.verify --scenario all
 python -m pytest -m "not slow"   # 単体テスト（1秒未満）
-python -m pytest -m slow         # 全シナリオ＋再現性（約10分）
+python -m pytest -m slow         # 全シナリオ＋再現性（約20分。S19・S20 は月20万行規模）
 ```
 
 ## 構成
@@ -76,6 +82,11 @@ docs/                        設計（design.md）・検証結果（scenarios.md
 | `marts/kpi_fact_fine.parquet` | 最小粒度の分子・分母（任意の絞り込みで再集計できる） | Power BI の明細 |
 | `marts/alerts.csv` | 業績アラート（優先度・根拠・データから言える示唆） | アラート一覧・Lists への取込 |
 | `marts/actions.csv / .json` | アクション提案の下書き（事実・示唆・仮説・確認事項・影響・担当・期限） | Lists への取込 |
+| `marts/kpi_daily.*`, `kpi_hourly.*` | 日別（直近27週）・時間別（直近35日）のKPI | 期間の切り替え |
+| `marts/pace.csv` | 当月累計・目標ペース・着地見込み | 毎朝の確認 |
+| `marts/supplier_*.parquet`, `supplier_load.csv` | サプライヤ×材質×サイズ×表面処理×熱処理の出荷・能力・充足率・発注金額・納期・不良 | サプライヤ画面 |
+| `marts/notifications.csv` | Teams 通知予定（宛先＝サプライヤ担当、CC＝上司。新規・悪化・解消のときだけ） | Power Automate |
+| `marts/kpi_report.xlsx` | 集計結果一式（シート別） | Excel での配布 |
 | `marts/dq_issues.csv` ほか | データ品質の検知事項、隔離行、到着ログ、過去値の修正ログ | データ管理者 |
 | `marts/dim_*.csv`, `kpi_definitions.csv` | マスタ・KPI定義 | Power BI のディメンション |
 | `dashboard.html` | 確認用ダッシュボード（データ埋め込みの単一ファイル） | 画面構成の検証・配布 |

@@ -83,18 +83,20 @@ def _expected_lines() -> float:
     return 1 + ev
 
 
-def build_targets(months: list[str]) -> pd.DataFrame:
+def build_targets(months: list[str], volume_scale: float = 1.0) -> pd.DataFrame:
     """計画値（目標）のダミー。シナリオ効果は入れない＝期初に決めた「計画」として固定。"""
     e_lines = _expected_lines()
     size_share = {s: P.SIZES[s] * P.SIZE_WEIGHT[s] for s in P.SIZES}
     tot = sum(size_share.values())
     size_adj = sum(size_share[s] / tot * P.SIZE_MARGIN[s] for s in P.SIZES)
     rows = []
-    for t, m in enumerate(months):
+    for m in months:
+        t = (pd.Period(m, "M") - pd.Period(P.START_MONTH, "M")).n  # 成長の起点は生成器と同じ
         cell = {}
         for e in P.ENTITIES:
             for p, prm in P.PRODUCTS.items():
                 n = P.BASE_ORDERS[e][p] * (1 + P.GROWTH_PER_YEAR) ** (t / 12) * P.SEASON.get(e, {}).get(int(m[5:]), 1.0)
+                n *= volume_scale
                 live = n * (1 - P.CANCEL_RATE)
                 amt = live * e_lines * prm["line_mean_jpy"]
                 cell[(e, p)] = dict(count=live, amount=amt, gp=amt * (prm["margin"] + size_adj),
@@ -122,3 +124,31 @@ def build_targets(months: list[str]) -> pd.DataFrame:
                 dict(kpi_id="defect_rate", month=m, scope_type=st, scope_key=key, target=dr),
             ]
     return pd.DataFrame(rows)
+
+
+def supplier_truth(world: dict, capacity: pd.DataFrame, months: list[str]) -> pd.DataFrame:
+    """サプライヤ×能力区分の月次充足率（出荷日ベース）。パイプラインとは独立に計算する。
+    充足率 = 出荷した明細数（数量）÷（日あたり供給能力 × 当月の平日数）"""
+    o = world["orders"]
+    s = world["shipments"].merge(o[o.status != "取消"], on=["order_id", "line_no"], suffixes=("", "_o"))
+    s = s[s.ship_date.notna()].copy()
+    s["month"] = s.ship_date.dt.strftime("%Y-%m")
+    keys = ["supplier_code", "material", "part_size", "surface", "heat"]
+    rows = []
+    for m in months:
+        p = pd.Period(m, "M")
+        wd = int(np.busday_count(p.start_time.date(), (p.end_time + pd.Timedelta(days=1)).date()))
+        g = s[s.month == m].groupby(keys).agg(lines=("line_no", "size"), qty=("quantity", "sum")).reset_index()
+        c = capacity.merge(g, on=keys, how="left").fillna({"lines": 0, "qty": 0})
+        c["month"] = m
+        c["load_count"] = c.lines / (c.cap_count_day * wd)
+        c["load_qty"] = c.qty / (c.cap_qty_day * wd)
+        rows.append(c)
+        sup = c.groupby("supplier_code").agg(lines=("lines", "sum"), qty=("qty", "sum"), cc=("cap_count_day", "sum"),
+                                             cq=("cap_qty_day", "sum")).reset_index()
+        sup["month"] = m
+        sup["load_count"] = sup.lines / (sup.cc * wd)
+        sup["load_qty"] = sup.qty / (sup.cq * wd)
+        rows.append(sup.assign(material="*", part_size="*", surface="*", heat="*"))
+    out = pd.concat(rows, ignore_index=True)
+    return out[["month"] + keys + ["lines", "qty", "load_count", "load_qty"]]

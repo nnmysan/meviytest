@@ -14,6 +14,17 @@ global:
   row_count: {low: 0.5, high: 2.0, lookback: 6}
   info_scopes: [total, entity, product, entity_product]   # 季節要因・連続悪化・大口の通知を出す内訳（課などとの重複表示を避ける）
   trend_significance: 2.0       # 連続悪化は、累計の変化が平常のばらつきの2倍以上のときのみ
+  # 当月の着地見込み（毎朝）。経過5営業日以降、見込みが目標の90%（P2）・80%（P1）未満で、偶然の範囲を超えるとき
+  pace: {p2: 0.90, p1: 0.80, min_business_days: 5, significance: 2.0}
+  # サプライヤの生産充足率（＝出荷 ÷ 供給能力）。目標80%以下。超えたらアラート・通知
+  supplier:
+    target_load: 0.80
+    levels: {p2: 0.80, p1: 0.95, over: 1.00}
+    min_capacity_lines_month: 150    # 判定する窓の供給能力がこれ未満の組み合わせは単独では判定しない（大口1件で大きくぶれるため）
+    min_demand_lines: 30
+    forward_business_days: 5         # 今後の出荷予定を見る営業日数（リードタイム内でほぼ受注済みの範囲）
+    mtd_min_business_days: 5
+    transfer_max_load: 0.60          # 振替候補とするサプライヤの充足率の上限
 kpis:
   order_amount:
     target_miss: {p2: 0.90, p1: 0.80}                  # 達成率

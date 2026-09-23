@@ -1,0 +1,12 @@
+id: S21
+name: 当月の着地見込み未達（毎朝の更新で早期に検知）
+description: 2026-09 の受注件数を月初から40%減らす（8月までは通常）。取込日 9/8 時点の5営業日分で着地見込みを判定する。
+seed: 20260901
+effects:
+  - {type: demand, months: [2026-09], factor: 0.6}
+expect:
+  - {check: status, equals: ok}
+  - {check: alert, kpi: order_amount, scope_key: ALL, rule: forecast, min_priority: P1}
+  - {check: alert, kpi: order_count, scope_key: ALL, rule: forecast, min_priority: P1}
+  - {check: no_alert, kpi: order_amount, scope_key: ALL, rule: abnormal, priorities: [P1, P2]}
+  - {check: pace_truth, kpi: order_amount, scope_key: ALL}

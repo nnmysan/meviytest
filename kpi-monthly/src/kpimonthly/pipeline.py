@@ -21,7 +21,9 @@ from .actions import build_actions
 from .alerts import evaluate
 from .analysis import label_maps
 from .config import Config, load_config
-from .core import add_dims, build_db, compute_fine, largest_orders
+from .core import add_dims, build_db, compute_daily, compute_fine, compute_hourly, largest_orders
+from .pacing import compute_pacing
+from .supplier import analyze_suppliers, save_state
 from .dq import DQ, BusinessCalendar, next_month
 from .ingest import load_masters, ingest
 
@@ -55,6 +57,8 @@ def check_arrivals(file_log: pd.DataFrame, masters: dict, cfg: Config, target_mo
     months = [str(pd.Period(target_month, "M") - i) for i in range(lookback - 1, -1, -1)]
     loaded = file_log[file_log.status.isin(["loaded", "skipped_duplicate"])] if len(file_log) else file_log
     have = set(zip(loaded.source, loaded.entity, loaded.month)) if len(loaded) else set()
+    first = loaded.month.min() if len(loaded) else target_month  # データの開始月より前は未着と判定しない
+    months = [m for m in months if m >= first]
     as_of_ts = pd.Timestamp(as_of)
     for m in months:
         due = cal.nth_business_day(next_month(m), due_bd)
@@ -209,6 +213,7 @@ def run(cfg: Config, landing_dirs: list[Path], target_month: str, as_of: str, ou
         return RunResult("blocked", out_dir, run_id, {"dq": dqf}, manifest)
 
     con = build_db(data, masters, as_of, dq)
+    data = None  # 取込後の明細は DuckDB に移したので解放（大量行でのメモリ対策）
     fine = add_dims(compute_fine(con, cfg.kpis), masters)
     big = largest_orders(con)
     cfg._label_maps = label_maps(masters)
@@ -221,28 +226,50 @@ def run(cfg: Config, landing_dirs: list[Path], target_month: str, as_of: str, ou
     restatements = compare_snapshot(an, prev, cfg, target_month, dq, prev_run)
 
     alerts, stats = evaluate(an, fine, cfg, target_month, as_of)
+
+    # 毎朝の更新：日別・時間別・当月の進捗・サプライヤ
+    last_order = con.execute("SELECT MAX(order_date) FROM orders").fetchone()[0]
+    data_end = min(pd.Timestamp(as_of) - pd.Timedelta(days=1), pd.Timestamp(last_order)).strftime("%Y-%m-%d")
+    d_start = (pd.Timestamp(data_end) - pd.Timedelta(days=7 * 27)).strftime("%Y-%m-%d")
+    daily = compute_daily(con, cfg.kpis, d_start, data_end)
+    h_start = (pd.Timestamp(data_end) - pd.Timedelta(days=34)).strftime("%Y-%m-%d")
+    hourly = compute_hourly(con, cfg.kpis, h_start, data_end)
+    pace, pace_alerts = (pd.DataFrame(), [])
+    if data_end[:7] > target_month:
+        pace, pace_alerts = compute_pacing(daily, cfg, masters, data_end, cal, cfg._label_maps)
+    sup = analyze_suppliers(con, masters, cfg, target_month, as_of, data_end, state_dir, cal)
     meeting = cal.nth_business_day(next_month(target_month), cfg.analysis.get("meeting_business_day", 8))
     next_meeting = cal.nth_business_day(next_month(target_month, 2), cfg.analysis.get("meeting_business_day", 8))
     due = cal.add_business_days(next_meeting, -cfg.analysis.get("action_due_offset_business_days", 3))
     dqf = dq.frame()
     dq_due = cal.add_business_days(pd.Timestamp(as_of), 2)
     actions = build_actions(alerts, dqf, cfg, masters, due, dq_due)
+    extra = pace_alerts + (sup.get("alerts", []) if sup.get("enabled") else [])
+    if extra:
+        alerts = pd.concat([alerts, pd.DataFrame(extra)], ignore_index=True)
+    if sup.get("enabled"):
+        actions = actions + sup["actions"]
     rdir = review_dir if review_dir is not None else (cfg.root / cfg.profile["review_dir"] if cfg.profile.get("review_dir") else None)
     alerts, actions, comments = merge_review(alerts, actions, rdir, target_month)
 
-    manifest.update(status="ok", meeting_date=meeting.strftime("%Y-%m-%d"), action_due_default=due.strftime("%Y-%m-%d"),
+    manifest.update(status="ok", data_end=data_end, meeting_date=meeting.strftime("%Y-%m-%d"), action_due_default=due.strftime("%Y-%m-%d"),
                     **stats, finalized=finalize,
                     counts={"alerts": alerts.priority.value_counts().to_dict() if len(alerts) else {},
                             "dq": dqf.priority.value_counts().to_dict() if len(dqf) else {},
                             "actions": len(actions), "quarantine_rows": int(len(quarantine)),
-                            "restatements": int(len(restatements))})
+                            "restatements": int(len(restatements)),
+                            "supplier_alerts": len(sup.get("alerts", [])), "notifications": len(sup.get("notifications", [])),
+                            "pace_alerts": len(pace_alerts)})
     frames = {"analysis": an, "fine": fine, "alerts": alerts, "actions": actions, "dq": dqf, "quarantine": quarantine,
-              "file_log": file_log, "restatements": restatements, "comments": comments, "masters": masters}
+              "file_log": file_log, "restatements": restatements, "comments": comments, "masters": masters,
+              "daily": daily, "hourly": hourly, "pace": pace, "supplier": sup, "_con": con}
 
     from .export import write_outputs
     write_outputs(frames, cfg, manifest, out_dir, write_dashboard=write_dashboard)
 
-    # 状態の保存（次回の過去値修正の検出・期限後到着の判定に使う）
+    # 状態の保存（次回の過去値修正の検出・期限後到着の判定・通知の重複防止に使う）
+    if sup.get("enabled"):
+        save_state(state_dir, sup["state"])
     an.to_parquet(prev_path, index=False)
     an.to_parquet(state_dir / f"snapshot_{run_id}.parquet", index=False)
     new_reg = file_log[file_log.status == "loaded"][["sha256", "file"]].assign(first_seen=as_of)
@@ -256,7 +283,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="月次KPIパイプライン")
     ap.add_argument("--profile", default="dummy")
     ap.add_argument("--landing", nargs="+", required=True, help="取込対象フォルダ（後に書いたものほど新しい到着）")
-    ap.add_argument("--target-month", required=True)
+    ap.add_argument("--target-month", default=None, help="月次分析の対象（締め月）。省略時は取込日の前月")
     ap.add_argument("--as-of", required=True, help="取込日（未着判定・期限判定に使用）")
     ap.add_argument("--out", required=True)
     ap.add_argument("--state", default=None)
@@ -265,7 +292,8 @@ def main(argv=None):
     ap.add_argument("--finalize", action="store_true", help="定例後の確定版として記録する")
     args = ap.parse_args(argv)
     cfg = load_config(args.profile, extra_kpi_files=[Path(p) for p in args.extra_kpi])
-    res = run(cfg, [Path(p) for p in args.landing], args.target_month, args.as_of, Path(args.out),
+    tm = args.target_month or str(pd.Period((pd.Timestamp(args.as_of) - pd.Timedelta(days=1)).strftime("%Y-%m"), "M") - 1)
+    res = run(cfg, [Path(p) for p in args.landing], tm, args.as_of, Path(args.out),
               Path(args.state) if args.state else None, Path(args.review_dir) if args.review_dir else None, args.finalize)
     print(json.dumps({"status": res.status, "run_id": res.run_id, "out": str(res.out_dir),
                       "counts": res.manifest.get("counts"), "blocking": res.manifest.get("blocking_issues")},

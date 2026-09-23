@@ -88,3 +88,51 @@ def test_dummy_profile_loads_kpis_in_business_order():
     cfg = load_config("dummy")
     assert [k["id"] for k in cfg.kpis][:6] == ["order_amount", "order_count", "quote_conversion", "gross_margin",
                                                "on_time_delivery", "defect_rate"]
+
+
+# ---------------------------------------------------------------- サプライヤ・当月進捗
+
+def test_supplier_levels_and_weekdays():
+    from kpimonthly.supplier import _level, weekdays
+    th = {"levels": {"p2": 0.80, "p1": 0.95, "over": 1.00}}
+    assert [_level(v, th) for v in (0.5, 0.8, 0.81, 0.96, 1.2)] == ["", "", "p2", "p1", "over"]
+    assert weekdays("2026-09-01", "2026-09-30") == 22     # 2026年9月の平日
+    assert weekdays("2026-09-05", "2026-09-06") == 0      # 土日
+
+
+def test_supplier_notifications_only_on_new_escalated_or_resolved(tmp_path):
+    from kpimonthly.supplier import _notifications, save_state
+    sup = pd.DataFrame([{"supplier_code": "S1", "owner": "担当A", "manager": "課長B"}])
+    a = {"scope_key": "supplier_code=S1|material=M", "level": "p2", "priority": "P2", "supplier_code": "S1",
+         "scope_label": "S1×M", "rule_label": "80%超", "message": "m", "alert_id": "A1"}
+    n1, st = _notifications([a], [], sup, tmp_path, "2026-09-08")
+    assert [x["reason"] for x in n1] == ["新規"] and n1[0]["to"] == "担当A" and n1[0]["cc"] == "課長B"
+    save_state(tmp_path, st)
+    n2, st = _notifications([a], [], sup, tmp_path, "2026-09-09")          # 翌朝も同じ状態 → 通知しない
+    assert n2 == []
+    save_state(tmp_path, st)
+    n3, st = _notifications([{**a, "level": "over", "priority": "P1"}], [], sup, tmp_path, "2026-09-10")  # 悪化
+    assert [x["reason"] for x in n3] == ["悪化"]
+    save_state(tmp_path, st)
+    n4, _ = _notifications([], [], sup, tmp_path, "2026-09-11")             # 解消
+    assert [x["reason"] for x in n4] == ["解消"]
+
+
+def test_pacing_forecast_is_simple_run_rate():
+    from types import SimpleNamespace
+    from kpimonthly.pacing import compute_pacing
+    # 2026-09-01〜09-07 は平日5日。1日100万円 → 当月累計500万円、9月の平日22日で着地見込み2,200万円
+    days = ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-07"]
+    daily = pd.DataFrame([{"kpi_id": "order_amount", "day": d, "entity_code": "JP", "product_code": "MSQ", "num": 1e6, "den": np.nan}
+                          for d in days] + [{"kpi_id": "order_count", "day": d, "entity_code": "JP", "product_code": "MSQ", "num": 100, "den": np.nan}
+                                            for d in days])
+    kpis = [{"id": "order_amount", "name": "受注金額", "type": "sum", "display": "yen", "direction": "higher_is_better"},
+            {"id": "order_count", "name": "受注件数", "type": "sum", "display": "count", "direction": "higher_is_better"}]
+    cfg = SimpleNamespace(kpis=kpis, g={"pace": {"p2": 0.9, "p1": 0.8, "min_business_days": 5, "significance": 2.0}},
+                          kpi=lambda k: next(x for x in kpis if x["id"] == k), kpi_thresholds=lambda k: {})
+    targets = pd.DataFrame([{"kpi_id": "order_amount", "month": "2026-09", "scope_type": "total", "scope_key": "ALL", "target": 4e7}])
+    pace, alerts = compute_pacing(daily, cfg, {"targets": targets}, "2026-09-07", None, {})
+    r = pace[(pace.kpi_id == "order_amount") & (pace.scope_key == "ALL")].iloc[0]
+    assert r.mtd == 5e6 and r.bdays_elapsed == 5 and r.bdays_total == 22
+    assert r.forecast == pytest.approx(2.2e7) and r.achievement_forecast == pytest.approx(0.55)
+    assert [a["priority"] for a in alerts if a["scope_key"] == "ALL"] == ["P1"]

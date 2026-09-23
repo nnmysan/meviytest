@@ -8,3 +8,5 @@ expect:
   - {check: truth_match, kpis: all, scope_types: [total, entity, product, entity_product], months: [2025-08, 2026-08]}
   - {check: no_alert, category: 業績, priorities: [P1, P2]}
   - {check: no_dq, priorities: [P1, P2]}
+  - {check: no_alert, category: 供給, priorities: [P1, P2]}
+  - {check: no_alert, rule: forecast, priorities: [P1, P2]}

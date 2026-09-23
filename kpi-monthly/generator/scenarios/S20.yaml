@@ -1,0 +1,15 @@
+id: S20
+name: 供給能力の超過（振替候補なし・今後の予定も逼迫）
+description: 月20万行規模。日本で SCM435 を扱うのは SUP-JP04 だけ。その SCM435・S・黒染め・焼入れ焼戻し への発注を 2026-08 以降 2.5 倍にする（9月上旬の受注で今後2週間の出荷予定も逼迫）。
+seed: 20260901
+volume_scale: 45
+start_month: 2026-05
+effects:
+  - {type: combo_demand, supplier_code: SUP-JP04, material: SCM435, part_size: S, surface: 黒染め, heat: 焼入れ焼戻し, months: [2026-08, 2026-09], factor: 2.5}
+expect:
+  - {check: status, equals: ok}
+  - {check: supplier_truth, month: 2026-08}
+  - {check: alert, category: 供給, scope_key: "supplier_code=SUP-JP04|material=SCM435|part_size=S|surface=黒染め|heat=焼入れ焼戻し", min_priority: P1}
+  - {check: alert_field, category: 供給, scope_key: "supplier_code=SUP-JP04|material=SCM435|part_size=S|surface=黒染め|heat=焼入れ焼戻し", column: rule_label, equals: 供給能力超過（100%超）}
+  - {check: supplier_eval, scope_key: "supplier_code=SUP-JP04|material=SCM435|part_size=S|surface=黒染め|heat=焼入れ焼戻し", basis: forward, load_ge: 0.8}
+  - {check: supplier_action, scope_key: "supplier_code=SUP-JP04|material=SCM435|part_size=S|surface=黒染め|heat=焼入れ焼戻し", include: [拡大交渉, 新規開拓], exclude: [振替]}

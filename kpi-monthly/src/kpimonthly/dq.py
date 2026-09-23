@@ -81,6 +81,11 @@ class BusinessCalendar:
         d = np.busday_offset(start, n - 1, roll="forward", holidays=self.holidays)
         return pd.Timestamp(d)
 
+    def busday_count(self, start, end_inclusive) -> int:
+        s = np.datetime64(pd.Timestamp(start).date())
+        e = np.datetime64((pd.Timestamp(end_inclusive) + pd.Timedelta(days=1)).date())
+        return int(np.busday_count(s, e, holidays=self.holidays)) if e > s else 0
+
     def add_business_days(self, day: pd.Timestamp, n: int) -> pd.Timestamp:
         d = np.busday_offset(np.datetime64(day.date()), n, roll="backward", holidays=self.holidays)
         return pd.Timestamp(d)

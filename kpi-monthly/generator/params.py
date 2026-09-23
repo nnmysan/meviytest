@@ -76,6 +76,8 @@ EXPORT_COLUMNS = {
         "order_id": "受注番号", "line_no": "行番号", "order_date": "受注日", "quote_id": "見積番号",
         "customer_id": "得意先コード", "product_code": "品目区分", "entity_code": "法人コード", "section_code": "課コード",
         "amount_local": "受注金額", "cost_local": "原価", "currency": "通貨", "status": "状態", "updated_at": "更新日時",
+        "order_ts": "受注日時", "quantity": "受注数量", "supplier_code": "仕入先コード", "material": "材質",
+        "part_size": "サイズ区分", "surface": "表面処理", "heat": "熱処理",
     },
     "shipments": {
         "order_id": "受注番号", "line_no": "行番号", "due_date": "回答納期", "ship_date": "出荷日", "updated_at": "更新日時",
@@ -87,3 +89,53 @@ EXPORT_COLUMNS = {
 }
 AMOUNT_COLUMN = {"quotes": "見積金額", "orders": "受注金額"}
 DEFECT_CATEGORIES = ["寸法不良", "外観不良", "材質不良", "員数違い"]
+
+# ---------------------------------------------------------------- 仕様・サプライヤ（すべて架空）
+# 受注明細の時刻分布（0〜23時の相対的な重み）。オンライン受注を想定し夜間も少し入る。
+HOUR_WEIGHTS = [1, 0.5, 0.3, 0.2, 0.2, 0.4, 1, 3, 7, 11, 13, 12, 7, 9, 12, 12, 11, 9, 6, 4, 3, 2.5, 2, 1.5]
+
+# 数量（個）の分布：試作1個が多く、たまにロット
+QTY_VALUES = [1, 2, 3, 4, 5, 10, 20, 50, 100]
+QTY_WEIGHTS = [0.34, 0.18, 0.1, 0.08, 0.1, 0.12, 0.05, 0.02, 0.01]
+
+PART_SIZES = ["S", "M", "L", "XL"]          # S:〜50mm, M:〜200mm, L:〜500mm, XL:500mm超（仮）
+SURFACES = ["なし", "黒染め", "無電解ニッケル", "アルマイト", "亜鉛めっき", "塗装"]
+HEATS = ["なし", "焼入れ焼戻し", "高周波焼入れ", "調質"]
+
+# 材質ごとに可能な表面処理・熱処理
+MATERIAL_SPEC = {
+    "SS400":  {"surface": ["なし", "黒染め", "亜鉛めっき", "塗装"], "heat": ["なし"]},
+    "S45C":   {"surface": ["なし", "黒染め", "無電解ニッケル"], "heat": ["なし", "焼入れ焼戻し", "高周波焼入れ", "調質"]},
+    "SCM435": {"surface": ["なし", "黒染め"], "heat": ["焼入れ焼戻し", "高周波焼入れ", "調質"]},
+    "SUS304": {"surface": ["なし"], "heat": ["なし"]},
+    "A5052":  {"surface": ["なし", "アルマイト"], "heat": ["なし"]},
+    "A7075":  {"surface": ["なし", "アルマイト"], "heat": ["なし"]},
+    "C3604":  {"surface": ["なし", "無電解ニッケル"], "heat": ["なし"]},
+    "SPCC":   {"surface": ["なし", "亜鉛めっき", "塗装"], "heat": ["なし"]},
+}
+
+# サプライヤ（架空）: 法人、得意な商品、材質、サイズ。能力の組み合わせは材質ごとに可能な処理から作る。
+SUPPLIERS = [
+    # code,       entity, products,          materials,                           sizes
+    ("SUP-JP01", "JP", ["MSQ"],            ["SS400", "S45C", "A5052"],           ["S", "M"]),
+    ("SUP-JP02", "JP", ["MSQ"],            ["S45C", "SUS304", "A7075"],          ["M", "L"]),
+    ("SUP-JP03", "JP", ["MSQ", "MRD"],     ["SUS304", "A5052", "C3604"],         ["S", "M"]),
+    ("SUP-JP04", "JP", ["MRD"],            ["S45C", "SCM435", "SUS304"],         ["S", "M", "L"]),
+    ("SUP-JP05", "JP", ["MRD"],            ["C3604", "A5052", "S45C"],           ["S", "M"]),
+    ("SUP-JP06", "JP", ["SHM"],            ["SPCC", "SUS304", "A5052"],          ["M", "L", "XL"]),
+    ("SUP-JP07", "JP", ["SHM", "SWD"],     ["SPCC", "SS400", "SUS304"],          ["L", "XL"]),
+    ("SUP-JP08", "JP", ["SWD"],            ["SS400", "SUS304", "A5052"],         ["M", "L", "XL"]),
+    ("SUP-KR01", "KR", ["MSQ", "MRD"],     ["S45C", "SUS304", "A5052"],          ["S", "M", "L"]),
+    ("SUP-KR02", "KR", ["MRD", "MSQ"],     ["C3604", "SCM435", "S45C"],          ["S", "M"]),
+    ("SUP-KR03", "KR", ["SHM", "SWD"],     ["SPCC", "SS400", "SUS304"],          ["M", "L", "XL"]),
+    ("SUP-EU01", "EU", ["MSQ", "MRD"],     ["S45C", "SUS304", "A7075"],          ["S", "M", "L"]),
+    ("SUP-EU02", "EU", ["MSQ", "MRD"],     ["A5052", "C3604", "SUS304"],         ["S", "M"]),
+    ("SUP-EU03", "EU", ["SHM", "SWD"],     ["SPCC", "SS400", "SUS304"],          ["M", "L", "XL"]),
+    ("SUP-CN01", "CN", ["MSQ"],            ["SS400", "S45C", "A5052"],           ["S", "M", "L"]),
+    ("SUP-CN02", "CN", ["MRD", "MSQ"],     ["S45C", "SCM435", "C3604"],          ["S", "M"]),
+    ("SUP-CN03", "CN", ["SHM"],            ["SPCC", "SUS304", "A5052"],          ["M", "L", "XL"]),
+    ("SUP-CN04", "CN", ["SWD", "SHM"],     ["SS400", "SPCC", "SUS304"],          ["L", "XL"]),
+]
+# 供給能力＝基準の需要 ÷ 負荷率の設定値。平常時は 40〜72% 程度に収まるようにする（仮）。
+CAPACITY_UTIL_RANGE = (0.40, 0.65)
+REF_BUSINESS_DAYS = 21.5
